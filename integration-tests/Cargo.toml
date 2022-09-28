@@ -1,0 +1,15 @@
+[package]
+name = "integration-tests"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "integration_tests"
+path = "src/main.rs"
+
+[dependencies]
+diesel = "1.4.8"
+dotenv = "0.15.0"
+
+[dependencies.minterop-common]
+path = "../minterop-common"

@@ -1,0 +1,74 @@
+[package]
+name = "minterop-indexer"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "minterop_indexer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "minterop_indexer"
+path = "src/main.rs"
+
+[dependencies]
+# actix as runtime for actix diesel (actix-tokio is very painful)
+# actix = "0.13.0"
+actix-rt = "2.7.0"
+# no-boilerplate error forwarding
+anyhow = "1.0.57"
+# Timestamps
+chrono = "0.4.19"
+# embedding migrations into binary
+diesel_migrations = "1.4.0"
+# initializing environment
+dotenv = "0.15.0"
+# getting config from environment
+envy = "0.4.2"
+# HTTP requests
+hyper = { version = "0.14.18", features = ["http1"] }
+hyper-tls = "0.5.0"
+# bread and butter of our indexing
+near-lake-framework = "0.5.0"
+# required for tokio channels
+tokio = "1.1"
+# tracing/subscriber for server logs
+tracing = "0.1.34"
+tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }
+# Deserialization of events/serialization of RPC calls
+# "arbitrary_precision" is required to deserialize old market events
+serde_json = { version = "1.0.81", features = ["arbitrary_precision"] }
+serde = { version = "1", features = ["derive"] }
+async-trait = "0.1.56"
+futures = "0.3.21"
+
+
+# diesel handles the database connection
+[dependencies.diesel]
+version = "1.4.8"
+# postgres because it's our DB, r2d2 handles pooled connections, chrono for
+# timestamps
+features = ["postgres", "r2d2", "chrono"]
+
+# async database connections, using actix-diesel from Vlad because this way we
+# can be somewhat sure that it will stay maintained
+[dependencies.actix-diesel]
+git = "https://github.com/frol/actix-diesel"
+rev = "3a001986c89dfabfc3c448d8bae28525101b4992"
+
+# utility library for defining and deserializing events
+# TODO: use re-export from mb-sdk
+[dependencies.near_events]
+git = "https://github.com/mintbase/near-events"
+rev = "f5e36e02b3bb030b99425b0ec7a46478b0967857"
+features = ["ser", "de"]
+
+[dependencies.mb-sdk]
+git = "https://github.com/Mintbase/mb-sdk.git"
+rev = "7b45b6b5ef76dcb1307a200c133b8e04b16a291c"
+features = ["all"]
+
+[dependencies.minterop-common]
+path = "../minterop-common"
+
+[features]

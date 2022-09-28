@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=minterop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      retries: 3
+      interval: 5s
+    # turn off logging for postgress,
+    # sometimes get mingled with app logs
+    # logging:
+    #   driver: none
+
+  rpc:
+    build:
+      context: ./minterop-rpc-service
+      dockerfile: Dockerfile.dev
+    ports:
+      # Allow sending local payloads for testing
+      - "3000:3000"
+    environment:
+      # - RUST_LOG=minterop-rpc=debug
+      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+      - RUST_LOG=minterop-rpc=info
+      # - PORT=3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - $PWD/.env:/app/.env
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/health"]
+      retries: 2
+      interval: 1s
+
+  indexer:
+    build:
+      context: ./minterop-indexer
+      dockerfile: Dockerfile.dev
+    depends_on:
+      rpc:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+      - RPC_URL=http://rpc:3000
+      - RUST_LOG=minterop=debug
+    volumes:
+      - $HOME/.aws:/root/.aws
+      - $PWD/.env:/app/.env
+
+  tests:
+    build:
+      context: ./integration-tests
+      dockerfile: Dockerfile
+    depends_on:
+      - indexer
+    volumes:
+      - $PWD/.env:/app/.env
+    environment:
+      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+    command: bash -c "while ping -c1 indexer &>/dev/null; do sleep 1; done; echo 'Indexer finished' && cargo test"

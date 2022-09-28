@@ -1,0 +1,17 @@
+.idea
+/target
+**/.env
+**/*.log
+**node_modules
+scripts/run-gcr.sh
+scripts/populate-frontend-db.sh
+scripts/redo-db-migrations.sh
+.github/workflows/testnet.yaml
+sa-keyfile.json
+tmp.txt
+*.env
+seed-testnet/keys
+seed-testnet/build
+seed-testnet/node_modules
+seed-testnet/sa.json
+.DS_Store
