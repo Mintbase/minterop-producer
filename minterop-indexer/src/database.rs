@@ -1,16 +1,3 @@
-// ------------------------------ tokio_diesel ------------------------------ //
-// pub(crate) type DbConnPool =
-//     diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
-// // timeouts and lifetimes?
-// // https://docs.diesel.rs/diesel/r2d2/struct.Builder.html
-// pub(crate) fn init_db_connection(pg_string: &str) -> DbConnPool {
-//     let pg_mgr = diesel::r2d2::ConnectionManager::new(&self.postgres_string);
-//     let pg_connection = diesel::r2d2::Pool::builder()
-//         .max_size(20)
-//         .build(pg_mgr)
-//         .unwrap();
-// }
-
 // ------------------------------ actix_diesel ------------------------------ //
 pub(crate) type DbConnPool = actix_diesel::Database<diesel::PgConnection>;
 
@@ -22,28 +9,9 @@ pub(crate) fn init_db_connection(pg_string: &str) -> DbConnPool {
         .open(pg_string)
 }
 
-// pub(crate) type AsyncQueryResult = std::pin::Pin<
-//     Box<
-//         dyn futures::Future<
-//             Output = Result<
-//                 (),
-//                 actix_diesel::AsyncError<diesel::result::Error>,
-//             >,
-//         >,
-//     >,
-// >;
-
-// pub(crate) type AsyncQuery =
-//     std::pin::Pin<Box<dyn futures::Future<Output = ()>>>;
-
 #[async_trait::async_trait]
 pub(crate) trait ExecuteDb {
-    async fn execute_db(
-        self,
-        db: &DbConnPool,
-        tx: &crate::runtime::ReceiptData,
-        msg: &str,
-    );
+    async fn execute_db(self, db: &DbConnPool, tx: &crate::runtime::ReceiptData, msg: &str);
 }
 
 #[async_trait::async_trait]
@@ -53,14 +21,35 @@ where
         + diesel::query_dsl::load_dsl::ExecuteDsl<diesel::PgConnection>
         + Send,
 {
-    async fn execute_db(
-        self,
-        db: &DbConnPool,
-        tx: &crate::runtime::ReceiptData,
-        msg: &str,
-    ) {
+    async fn execute_db(self, db: &DbConnPool, tx: &crate::runtime::ReceiptData, msg: &str) {
         if let Err(e) = self.execute_async(db).await {
             crate::error!("Failed to {}: {} ({:?})", msg, e, tx);
         }
+    }
+}
+
+pub(crate) async fn query_metadata_id(
+    nft_contract_id: String,
+    token_id: String,
+    db: &DbConnPool,
+) -> Option<String> {
+    use actix_diesel::dsl::AsyncRunQueryDsl;
+    use diesel::{ExpressionMethods, QueryDsl};
+    use minterop_data::schema::nft_tokens::dsl;
+
+    match dsl::nft_tokens
+        .filter(dsl::nft_contract_id.eq(nft_contract_id))
+        .filter(dsl::token_id.eq(token_id))
+        .select(dsl::metadata_id)
+        .limit(1)
+        .get_results_async::<Option<String>>(db)
+        .await
+    {
+        Err(_) => None,
+        Ok(values) if values.len() > 0 => match values.get(0) {
+            Some(Some(s)) => Some(s.to_string()),
+            _ => None,
+        },
+        Ok(_) => None,
     }
 }

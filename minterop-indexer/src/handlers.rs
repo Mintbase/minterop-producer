@@ -1,21 +1,9 @@
 mod prelude {
-    pub use diesel::{
-        query_dsl::filter_dsl::FilterDsl,
-        ExpressionMethods,
-    };
+    pub use diesel::{query_dsl::filter_dsl::FilterDsl, ExpressionMethods};
     pub use futures::future;
-    pub use minterop_common::{
-        db_rows::*,
-        pg_numeric,
-        schema::*,
-    };
+    pub use minterop_data::{db_rows::*, pg_numeric, schema::*};
 
-    pub(crate) use crate::{
-        database::ExecuteDb,
-        error,
-        runtime::TxProcessingRuntime,
-        ReceiptData,
-    };
+    pub(crate) use crate::{database::ExecuteDb, error, runtime::TxProcessingRuntime, ReceiptData};
 }
 
 crate::forward_mod!(nft_core);

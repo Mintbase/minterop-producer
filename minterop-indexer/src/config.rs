@@ -1,10 +1,7 @@
 use anyhow::Result;
 use near_lake_framework::LakeConfigBuilder;
 
-use crate::{
-    rpc_connection::MinteropRpcConnector,
-    runtime::MintlakeRuntime,
-};
+use crate::{rpc_connection::MinteropRpcConnector, runtime::MintlakeRuntime};
 
 #[derive(serde::Deserialize)]
 pub struct Config {
@@ -69,7 +66,7 @@ impl Config {
 
     /// Migrates the database to the most recent schema
     pub fn migrate_db(&self) -> Result<()> {
-        minterop_common::run_migrations(&self.postgres)
+        minterop_data::run_migrations(&self.postgres)
     }
 }
 

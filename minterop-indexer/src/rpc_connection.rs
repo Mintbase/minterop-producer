@@ -1,17 +1,22 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use hyper::{
-    Body,
-    Request,
-};
-use minterop_common::rpc_payloads::*;
+use hyper::{Body, Request};
+use minterop_data::rpc_payloads::*;
 use near_lake_framework::near_indexer_primitives::types::AccountId;
+use serde::Serialize;
 
-type Client = hyper::Client<
-    hyper_tls::HttpsConnector<hyper::client::HttpConnector>,
-    hyper::Body,
->;
+type Client = hyper::Client<hyper_tls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body>;
+#[derive(Serialize)]
+
+pub struct Contract {
+    pub contract_id: String,
+}
+#[derive(Serialize)]
+pub struct Token {
+    pub contract_id: String,
+    pub token_ids: Vec<String>,
+}
 
 #[derive(Clone)]
 pub(crate) struct MinteropRpcConnector {
@@ -21,8 +26,7 @@ pub(crate) struct MinteropRpcConnector {
 
 impl MinteropRpcConnector {
     pub fn new(endpoint: &str) -> Result<Self> {
-        let client =
-            hyper::Client::builder().build(hyper_tls::HttpsConnector::new());
+        let client = hyper::Client::builder().build(hyper_tls::HttpsConnector::new());
         let endpoint = hyper::Uri::from_str(endpoint)?;
         Ok(Self { client, endpoint })
     }
@@ -35,7 +39,7 @@ impl MinteropRpcConnector {
         };
         let req = post_json(&self.endpoint.to_string(), &contract);
 
-        crate::debug!("contract event publish: {:?}", req);
+        crate::debug!("req: {:?}", req);
         let res = self.client.request(req).await;
         crate::debug!("res: {:?}", res);
 
@@ -61,7 +65,7 @@ impl MinteropRpcConnector {
             &token,
         );
 
-        crate::debug!("token event publish: {:?}", req);
+        crate::debug!("req: {:?}", req);
         let res = self.client.request(req).await;
         crate::debug!("res: {:?}", res);
 

@@ -7,19 +7,15 @@ pub(crate) async fn handle_nft_set_split_owners(
     tx: &ReceiptData,
     data: serde_json::Value,
 ) {
-    use minterop_common::schema::nft_tokens::dsl;
+    use minterop_data::schema::nft_tokens::dsl;
 
-    let token_ids =
-        match serde_json::from_value::<NftSetSplitOwnerData>(data.clone()) {
-            Err(_) => {
-                error!(
-                    r#"Invalid log for "nft_transfer": {} ({:?})"#,
-                    data, tx
-                );
-                return;
-            }
-            Ok(data) => data.token_ids,
-        };
+    let token_ids = match serde_json::from_value::<NftSetSplitOwnerData>(data.clone()) {
+        Err(_) => {
+            error!(r#"Invalid log for "nft_transfer": {} ({:?})"#, data, tx);
+            return;
+        }
+        Ok(data) => data.token_ids,
+    };
 
     // unwrap ok, because schema has been validated
     let splits_json = data.get("split_owners").unwrap();

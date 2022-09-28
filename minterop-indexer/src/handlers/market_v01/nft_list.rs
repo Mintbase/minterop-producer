@@ -46,6 +46,20 @@ async fn insert_nft_listing(
         NFT_LISTING_KIND_AUCTION.to_string()
     };
 
+    let metadata_id = match crate::database::query_metadata_id(
+        log.store_id.clone(),
+        log.token_id.clone(),
+        &rt.pg_connection,
+    )
+    .await
+    {
+        None => {
+            crate::error!("Failed to find metadata ID ({:?})", tx);
+            return;
+        }
+        Some(metadata_id) => metadata_id,
+    };
+
     let listing = NftListing {
         nft_contract_id: log.store_id,
         token_id: log.token_id,
@@ -60,6 +74,7 @@ async fn insert_nft_listing(
         unlisted_at: None,
         accepted_at: None,
         accepted_offer_id: None,
+        metadata_id,
     };
 
     diesel::insert_into(nft_listings::table)

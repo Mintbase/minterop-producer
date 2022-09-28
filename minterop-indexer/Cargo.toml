@@ -68,7 +68,8 @@ git = "https://github.com/Mintbase/mb-sdk.git"
 rev = "7b45b6b5ef76dcb1307a200c133b8e04b16a291c"
 features = ["all"]
 
-[dependencies.minterop-common]
-path = "../minterop-common"
+[dependencies.minterop-data]
+git = "https://github.com/Mintbase/minterop-data"
+rev = "9ec9542e8474ad1cbf8dd273c34d9d74a8ed3bba"
 
 [features]

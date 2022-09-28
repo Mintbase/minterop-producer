@@ -1,7 +1,2 @@
 [workspace]
-members = [
-  "minterop-common",
-  "minterop-indexer",
-  "minterop-rpc-service",
-  "integration-tests",
-]
+members = ["minterop-indexer"]
