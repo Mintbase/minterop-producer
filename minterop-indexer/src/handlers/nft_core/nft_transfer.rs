@@ -1,6 +1,11 @@
 use mb_sdk::events::nft_core::NftTransferLog;
 
-use crate::{error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData};
+use crate::{
+    error,
+    handlers::prelude::*,
+    runtime::TxProcessingRuntime,
+    ReceiptData,
+};
 
 pub(crate) async fn handle_nft_transfer(
     rt: &TxProcessingRuntime,
@@ -15,17 +20,19 @@ pub(crate) async fn handle_nft_transfer(
             error!(r#"Invalid log for "nft_transfer": {} ({:?})"#, data, tx)
         }
         Ok(data_logs) => {
-            future::join_all(
-                data_logs
-                    .into_iter()
-                    .map(|log| handle_nft_transfer_log(rt.clone(), tx.clone(), log)),
-            )
+            future::join_all(data_logs.into_iter().map(|log| {
+                handle_nft_transfer_log(rt.clone(), tx.clone(), log)
+            }))
             .await;
         }
     }
 }
 
-async fn handle_nft_transfer_log(rt: TxProcessingRuntime, tx: ReceiptData, log: NftTransferLog) {
+async fn handle_nft_transfer_log(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftTransferLog,
+) {
     // TODO: join in RPC call? -> would require `on_conflict`
     future::join(
         insert_nft_tokens(rt.clone(), tx.clone(), log.clone()),
@@ -35,12 +42,20 @@ async fn handle_nft_transfer_log(rt: TxProcessingRuntime, tx: ReceiptData, log: 
 
     tokio::spawn(async move {
         rt.minterop_rpc
-            .token(tx.receiver.clone(), log.token_ids)
+            .token(
+                tx.receiver.clone(),
+                log.token_ids,
+                Some(tx.sender.to_string()),
+            )
             .await
     });
 }
 
-async fn insert_nft_tokens(rt: TxProcessingRuntime, tx: ReceiptData, log: NftTransferLog) {
+async fn insert_nft_tokens(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftTransferLog,
+) {
     use minterop_data::schema::nft_tokens::dsl;
 
     let tokens = log
@@ -69,7 +84,11 @@ async fn insert_nft_tokens(rt: TxProcessingRuntime, tx: ReceiptData, log: NftTra
         .await
 }
 
-async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: NftTransferLog) {
+async fn insert_nft_activities(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftTransferLog,
+) {
     let activities = log
         .token_ids
         .iter()

@@ -1,6 +1,11 @@
 use mb_sdk::events::nft_core::NftMintLog;
 
-use crate::{error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData};
+use crate::{
+    error,
+    handlers::prelude::*,
+    runtime::TxProcessingRuntime,
+    ReceiptData,
+};
 
 pub(crate) async fn handle_nft_mint(
     rt: &TxProcessingRuntime,
@@ -14,16 +19,20 @@ pub(crate) async fn handle_nft_mint(
         Err(_) => error!(r#"Invalid log for "nft_mint": {} ({:?})"#, data, tx),
         Ok(data_logs) => {
             future::join_all(
-                data_logs
-                    .into_iter()
-                    .map(|log| handle_nft_mint_log(rt.clone(), tx.clone(), log)),
+                data_logs.into_iter().map(|log| {
+                    handle_nft_mint_log(rt.clone(), tx.clone(), log)
+                }),
             )
             .await;
         }
     }
 }
 
-async fn handle_nft_mint_log(rt: TxProcessingRuntime, tx: ReceiptData, log: NftMintLog) {
+async fn handle_nft_mint_log(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftMintLog,
+) {
     // TODO: join in RPC call? -> would require `on_conflict`
     future::join(
         insert_nft_tokens(rt.clone(), tx.clone(), log.clone()),
@@ -33,12 +42,20 @@ async fn handle_nft_mint_log(rt: TxProcessingRuntime, tx: ReceiptData, log: NftM
 
     tokio::spawn(async move {
         rt.minterop_rpc
-            .token(tx.receiver.clone(), log.token_ids)
+            .token(
+                tx.receiver.clone(),
+                log.token_ids,
+                Some(tx.sender.to_string()),
+            )
             .await
     });
 }
 
-async fn insert_nft_tokens(rt: TxProcessingRuntime, tx: ReceiptData, log: NftMintLog) {
+async fn insert_nft_tokens(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftMintLog,
+) {
     // FIXME: only try on mintbase contracts!
     let (royalties_percent, royalties, splits) =
         if log.memo.is_some() && tx.receiver.ends_with(&rt.mintbase_root) {
@@ -71,7 +88,11 @@ async fn insert_nft_tokens(rt: TxProcessingRuntime, tx: ReceiptData, log: NftMin
         .await
 }
 
-async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: NftMintLog) {
+async fn insert_nft_activities(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftMintLog,
+) {
     let activities = log
         .token_ids
         .iter()
@@ -97,8 +118,10 @@ async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: Nf
 }
 
 // ----------- logic for parsing mint memos on MB token contracts ----------- //
-type SafeFractionMap =
-    std::collections::HashMap<mb_sdk::near_sdk::AccountId, mb_sdk::types::nft_core::SafeFraction>;
+type SafeFractionMap = std::collections::HashMap<
+    mb_sdk::near_sdk::AccountId,
+    mb_sdk::types::nft_core::SafeFraction,
+>;
 type U16Map = std::collections::HashMap<mb_sdk::near_sdk::AccountId, u16>;
 
 fn parse_mint_memo(
@@ -109,7 +132,9 @@ fn parse_mint_memo(
     Option<serde_json::Value>,
     Option<serde_json::Value>,
 ) {
-    match serde_json::from_str::<mb_sdk::types::nft_core::MintbaseMintMemo>(memo) {
+    match serde_json::from_str::<mb_sdk::types::nft_core::MintbaseMintMemo>(
+        memo,
+    ) {
         Err(e) => {
             error!(r#"Invalid mint memo: {} ({:?})"#, e, tx);
             (None, None, None)
@@ -127,7 +152,9 @@ fn parse_mint_memo(
 
             let splits = memo
                 .split_owners
-                .map(|split_owners| map_fractions_to_u16(split_owners.split_between))
+                .map(|split_owners| {
+                    map_fractions_to_u16(split_owners.split_between)
+                })
                 .and_then(|map| serde_json::to_value(map).ok());
 
             (royalties_percent, royalties, splits)
@@ -138,6 +165,8 @@ fn parse_mint_memo(
 fn map_fractions_to_u16(mut safe_fraction_map: SafeFractionMap) -> U16Map {
     safe_fraction_map
         .drain()
-        .map(|(account_id, safe_fraction)| (account_id, safe_fraction.numerator as u16))
+        .map(|(account_id, safe_fraction)| {
+            (account_id, safe_fraction.numerator as u16)
+        })
         .collect()
 }
