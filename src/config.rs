@@ -1,7 +1,10 @@
 use anyhow::Result;
 use near_lake_framework::LakeConfigBuilder;
 
-use crate::{rpc_connection::MinteropRpcConnector, runtime::MintlakeRuntime};
+use crate::{
+    rpc_connection::MinteropRpcConnector,
+    runtime::MintlakeRuntime,
+};
 
 #[derive(serde::Deserialize)]
 pub struct Config {

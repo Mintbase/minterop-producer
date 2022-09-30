@@ -11,7 +11,12 @@ pub(crate) fn init_db_connection(pg_string: &str) -> DbConnPool {
 
 #[async_trait::async_trait]
 pub(crate) trait ExecuteDb {
-    async fn execute_db(self, db: &DbConnPool, tx: &crate::runtime::ReceiptData, msg: &str);
+    async fn execute_db(
+        self,
+        db: &DbConnPool,
+        tx: &crate::runtime::ReceiptData,
+        msg: &str,
+    );
 }
 
 #[async_trait::async_trait]
@@ -21,7 +26,12 @@ where
         + diesel::query_dsl::load_dsl::ExecuteDsl<diesel::PgConnection>
         + Send,
 {
-    async fn execute_db(self, db: &DbConnPool, tx: &crate::runtime::ReceiptData, msg: &str) {
+    async fn execute_db(
+        self,
+        db: &DbConnPool,
+        tx: &crate::runtime::ReceiptData,
+        msg: &str,
+    ) {
         if let Err(e) = self.execute_async(db).await {
             crate::error!("Failed to {}: {} ({:?})", msg, e, tx);
         }
@@ -34,7 +44,10 @@ pub(crate) async fn query_metadata_id(
     db: &DbConnPool,
 ) -> Option<String> {
     use actix_diesel::dsl::AsyncRunQueryDsl;
-    use diesel::{ExpressionMethods, QueryDsl};
+    use diesel::{
+        ExpressionMethods,
+        QueryDsl,
+    };
     use minterop_data::schema::nft_tokens::dsl;
 
     match dsl::nft_tokens
