@@ -30,6 +30,7 @@ impl MinteropRpcConnector {
     pub async fn contract(&self, contract_id: AccountId) {
         // FIXME: using https leads to "record overflow"
         // FIXME: sometimes I need the slash, sometimes not?!
+
         let req = post_json(
             &self.endpoint.to_string(),
             &RpcMessage::from_contract(contract_id.to_string()),

@@ -1,9 +1,6 @@
-name: Minterop Consumer CICD
+name: Minterop Producer CICD
 
-on:
-  push:
-    branches:
-      - main
+on: push
 
 jobs:
   #  Upload the startup script to the storage bucket for deployments to use.
@@ -24,13 +21,12 @@ jobs:
       - id: "upload-startup-script"
         uses: "google-github-actions/upload-cloud-storage@v0"
         with:
-          path: "./minterop-producer/indexer-startup.sh"
-          destination: "indexer-startup-scripts"
+          path: "./indexer-startup.sh"
+          destination: "minterop-producer-scripts"
 
 
   # Build the indexer docker image (deploy is manual for now)
   build_indexer:
-    needs: workspace
     runs-on: ubuntu-22.04
     name: Build indexer image and push image to GCP
     steps:
@@ -53,11 +49,8 @@ jobs:
       # Build and push docker image
       - name: "Build Latest Indexer Image and push"
         run: |
-          cd minterop-indexer
-          docker build \
-            -t gcr.io/omni-cloud-1/minterop-producer:${GITHUB_SHA::6} \
-            -t gcr.io/omni-cloud-1/minterop-producer:latest \
-            --build-arg IMAGE=gcr.io/omni-cloud-1/minterop-workspace:${GITHUB_SHA::6} .
+          docker build . -t gcr.io/omni-cloud-1/minterop-producer:${GITHUB_SHA::6}
+          docker build . -t gcr.io/omni-cloud-1/minterop-producer:latest
           docker push gcr.io/omni-cloud-1/minterop-producer:${GITHUB_SHA::6}
           docker push gcr.io/omni-cloud-1/minterop-producer:latest
 
@@ -77,6 +70,9 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v0"
+    
       - name: Rust setup
         uses: actions-rs/toolchain@v1
         with:

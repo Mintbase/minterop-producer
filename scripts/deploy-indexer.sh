@@ -3,6 +3,10 @@
 network="$1"
 commit_hash="$2"
 
+
+gcloud compute instances delete "minterop-producer-$network" -q \
+  --project=omni-cloud-1 \
+  --zone=europe-west1-b
 # this is brittle in two places: but it get's smooshed into JSON, the .env
 # may not contain double quotes `"`, and because we use `&` for newline
 # serialization, we can not have `&` anywhere. `tr` limits us to single
@@ -10,10 +14,10 @@ commit_hash="$2"
 # We cannot use commas because of the URL, so we need to `tr` them to
 # semicolons, meaning we cannot use semicolons
 DOTENV=$(cat "$network".env | sed -E '/^(#.*)?$/d' | tr $'\n' '&' | tr ',' ';')
-STARTUP_SCRIPT="gs://indexer-startup-scripts/indexer-startup-$network.sh"
+STARTUP_SCRIPT="gs://minterop-producer-scripts/indexer-startup-$network.sh"
 INSTANCE_NAME="minterop-producer-$network"
 
-gsutil cp "$PWD/minterop-indexer/indexer-startup.sh" "$STARTUP_SCRIPT"
+gsutil cp "$PWD/indexer-startup.sh" "$STARTUP_SCRIPT"
 
 gcloud compute instances create "$INSTANCE_NAME" \
 	--project=omni-cloud-1 \
