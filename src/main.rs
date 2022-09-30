@@ -1,5 +1,10 @@
 // use futures::StreamExt;
-use minterop_indexer::{Config, LakeHandle, LakeStreamer, MintlakeRuntime};
+use minterop_indexer::{
+    Config,
+    LakeHandle,
+    LakeStreamer,
+    MintlakeRuntime,
+};
 // use tokio_stream::wrappers::ReceiverStream;
 
 async fn init() -> (LakeHandle, LakeStreamer, MintlakeRuntime) {
