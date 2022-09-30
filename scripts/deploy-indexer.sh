@@ -11,7 +11,7 @@ commit_hash="$2"
 # semicolons, meaning we cannot use semicolons
 DOTENV=$(cat "$network".env | sed -E '/^(#.*)?$/d' | tr $'\n' '&' | tr ',' ';')
 STARTUP_SCRIPT="gs://indexer-startup-scripts/indexer-startup-$network.sh"
-INSTANCE_NAME="interop-indexer-$network"
+INSTANCE_NAME="minterop-producer-$network"
 
 gsutil cp "$PWD/minterop-indexer/indexer-startup.sh" "$STARTUP_SCRIPT"
 
