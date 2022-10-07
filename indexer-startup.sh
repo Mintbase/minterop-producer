@@ -40,4 +40,4 @@ sudo docker run \
   --log-driver=gcplogs \
   -v $PWD/.env:/app/.env \
   -v $PWD/.aws:/root/.aws \
-  gcr.io/omni-cloud-1/minterop-indexer:$COMMIT_HASH
+  gcr.io/omni-cloud-1/minterop-producer:$COMMIT_HASH
