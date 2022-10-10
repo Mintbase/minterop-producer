@@ -1,6 +1,9 @@
 name: Minterop Producer CICD
 
-on: push
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   #  Upload the startup script to the storage bucket for deployments to use.
