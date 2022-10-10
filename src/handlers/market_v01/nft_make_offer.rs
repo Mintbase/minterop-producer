@@ -65,6 +65,7 @@ async fn insert_nft_offer(
         referral_amount: None,
         withdrawn_at: None,
         accepted_at: None,
+        expires_at: Some(crate::nsecs_to_timestamp(log.offer.timeout)),
     };
 
     diesel::insert_into(nft_offers::table)

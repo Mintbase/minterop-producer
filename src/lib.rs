@@ -21,3 +21,9 @@ macro_rules! forward_mod {
         pub(crate) use $mod::*;
     };
 }
+
+pub(crate) fn nsecs_to_timestamp(nsecs: u64) -> chrono::NaiveDateTime {
+    let nsecs_rem = nsecs % 1_000_000_000;
+    let secs = (nsecs - nsecs_rem) / 1_000_000_000;
+    chrono::naive::NaiveDateTime::from_timestamp(secs as i64, nsecs_rem as u32)
+}
