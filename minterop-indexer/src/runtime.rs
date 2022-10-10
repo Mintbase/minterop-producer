@@ -1,15 +1,9 @@
 use near_lake_framework::near_indexer_primitives::{
-    types::AccountId,
-    views::BlockHeaderView,
-    IndexerExecutionOutcomeWithReceipt,
-    StreamerMessage,
+    types::AccountId, views::BlockHeaderView, IndexerExecutionOutcomeWithReceipt, StreamerMessage,
 };
 
 use crate::{
-    database::DbConnPool,
-    logging::HandleErr,
-    rpc_connection::MinteropRpcConnector,
-    LakeStreamer,
+    database::DbConnPool, logging::HandleErr, rpc_connection::MinteropRpcConnector, LakeStreamer,
 };
 
 /// Holding all the data needed to handle blocks
@@ -33,11 +27,7 @@ impl MintlakeRuntime {
 
     /// Handles the stream of blocks until a specified height and then exits.
     /// Intended for replaying transactions.
-    async fn handle_stream_bounded(
-        &self,
-        mut stream: LakeStreamer,
-        stop_height: u64,
-    ) {
+    async fn handle_stream_bounded(&self, mut stream: LakeStreamer, stop_height: u64) {
         crate::info!("Running bounded indexer to height {}", stop_height);
 
         #[allow(unused_assignments)]
@@ -45,10 +35,7 @@ impl MintlakeRuntime {
         while let Some(msg) = stream.recv().await {
             height = self.handle_msg(msg).await;
             if height > stop_height {
-                crate::info!(
-                    "Finished running indexer to height, {}",
-                    stop_height
-                );
+                crate::info!("Finished running indexer to height, {}", stop_height);
                 return;
             }
         }
@@ -115,11 +102,7 @@ impl MintlakeRuntime {
 
 /// Handles a transaction by filtering all logs for being an event log and
 /// processing those in order.
-async fn handle_tx(
-    rt: &TxProcessingRuntime,
-    tx: ReceiptData,
-    logs: Vec<String>,
-) {
+async fn handle_tx(rt: &TxProcessingRuntime, tx: ReceiptData, logs: Vec<String>) {
     for log in logs
         .into_iter()
         .filter(|log| log.starts_with("EVENT_JSON:"))
@@ -145,44 +128,28 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
     match (standard.as_str(), version.as_str(), event.as_str()) {
         // ------------ nft_core
         ("nep171", "1.0.0", "nft_mint") => handle_nft_mint(rt, &tx, data).await,
-        ("nep171", "1.0.0", "nft_transfer") => {
-            handle_nft_transfer(rt, &tx, data).await
-        }
+        ("nep171", "1.0.0", "nft_transfer") => handle_nft_transfer(rt, &tx, data).await,
         ("nep171", "1.0.0", "nft_burn") => handle_nft_burn(rt, &tx, data).await,
         // ------------ nft_approvals
-        ("mb_store", "0.1.0", "nft_approve") => {
-            handle_nft_approve(rt, &tx, data).await
-        }
-        ("mb_store", "0.1.0", "nft_revoke") => {
-            handle_nft_revoke(rt, &tx, data).await
-        }
-        ("mb_store", "0.1.0", "nft_revoke_all") => {
-            handle_nft_revoke_all(rt, &tx, data).await
-        }
+        ("mb_store", "0.1.0", "nft_approve") => handle_nft_approve(rt, &tx, data).await,
+        ("mb_store", "0.1.0", "nft_revoke") => handle_nft_revoke(rt, &tx, data).await,
+        ("mb_store", "0.1.0", "nft_revoke_all") => handle_nft_revoke_all(rt, &tx, data).await,
         // ------------ nft_payouts
         ("mb_store", "0.1.0", "nft_set_split_owners") => {
             handle_nft_set_split_owners(rt, &tx, data).await
         }
         // ------------ mb_store_settings
-        ("mb_store", "0.1.0", "deploy") => {
-            handle_mb_store_deploy(rt, &tx, data).await
-        }
+        ("mb_store", "0.1.0", "deploy") => handle_mb_store_deploy(rt, &tx, data).await,
         ("mb_store", "0.1.0", "change_setting") => {
             handle_mb_store_change_setting(rt, &tx, data).await
         }
         // ------------ old mintbase market
-        ("mb_market", "0.1.0", "nft_list") => {
-            market_v01::handle_nft_list(rt, &tx, data).await
-        }
-        ("mb_market", "0.1.0", "nft_unlist") => {
-            market_v01::handle_nft_unlist(rt, &tx, data).await
-        }
+        ("mb_market", "0.1.0", "nft_list") => market_v01::handle_nft_list(rt, &tx, data).await,
+        ("mb_market", "0.1.0", "nft_unlist") => market_v01::handle_nft_unlist(rt, &tx, data).await,
         ("mb_market", "0.1.0", "nft_update_list") => {
             market_v01::handle_nft_update_list(rt, &tx, data).await
         }
-        ("mb_market", "0.1.0", "nft_sold") => {
-            market_v01::handle_nft_sold(rt, &tx, data).await
-        }
+        ("mb_market", "0.1.0", "nft_sold") => market_v01::handle_nft_sold(rt, &tx, data).await,
         ("mb_market", "0.1.0", "nft_make_offer") => {
             market_v01::handle_nft_make_offer(rt, &tx, data).await
         }
@@ -192,15 +159,9 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
         // ("mb_market", "0.1.0", "update_banlist") => { not necessary }
         // ("mb_market", "0.1.0", "update_allowlist") => { not necessary }
         // ------------ interop mintbase market
-        ("mb_market", "0.2.1", "nft_list") => {
-            market_v02::handle_nft_list(rt, &tx, data).await
-        }
-        ("mb_market", "0.2.1", "nft_unlist") => {
-            market_v02::handle_nft_unlist(rt, &tx, data).await
-        }
-        ("mb_market", "0.2.1", "nft_sale") => {
-            market_v02::handle_nft_sold(rt, &tx, data).await
-        }
+        ("mb_market", "0.2.1", "nft_list") => market_v02::handle_nft_list(rt, &tx, data).await,
+        ("mb_market", "0.2.1", "nft_unlist") => market_v02::handle_nft_unlist(rt, &tx, data).await,
+        ("mb_market", "0.2.1", "nft_sale") => market_v02::handle_nft_sold(rt, &tx, data).await,
         ("mb_market", "0.2.1", "nft_make_offer") => {
             market_v02::handle_nft_make_offer(rt, &tx, data).await
         }
@@ -235,15 +196,6 @@ fn filter_and_split_receipt(
 ) -> Option<(ReceiptData, Vec<String>)> {
     use near_lake_framework::near_indexer_primitives::views;
 
-    let nsecs_to_timestamp = |nsecs| {
-        let nsecs_rem = nsecs % 1_000_000_000;
-        let secs = (nsecs - nsecs_rem) / 1_000_000_000;
-        chrono::naive::NaiveDateTime::from_timestamp(
-            secs as i64,
-            nsecs_rem as u32,
-        )
-    };
-
     // check for tx success
     match tx.execution_outcome.outcome.status {
         views::ExecutionStatusView::Unknown => None,
@@ -257,13 +209,12 @@ fn filter_and_split_receipt(
                     sender: tx.receipt.predecessor_id,
                     sender_pk: match tx.receipt.receipt {
                         views::ReceiptEnumView::Action {
-                            signer_public_key,
-                            ..
+                            signer_public_key, ..
                         } => Some(signer_public_key.to_string()),
                         _ => None,
                     },
                     receiver: tx.receipt.receiver_id,
-                    timestamp: nsecs_to_timestamp(header.timestamp_nanosec),
+                    timestamp: crate::nsecs_to_timestamp(header.timestamp_nanosec),
                     // block_height: header.height,
                 },
                 tx.execution_outcome.outcome.logs,

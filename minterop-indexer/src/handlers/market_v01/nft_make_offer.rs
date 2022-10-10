@@ -12,19 +12,17 @@ pub(crate) async fn handle_nft_make_offer(
             error!(r#"Invalid log for "nft_make_offer": {} ({:?})"#, data, tx);
         }
         Ok(data_logs) => {
-            future::join_all(data_logs.into_iter().map(|log| {
-                handle_nft_make_offer_log(rt.clone(), tx.clone(), log)
-            }))
+            future::join_all(
+                data_logs
+                    .into_iter()
+                    .map(|log| handle_nft_make_offer_log(rt.clone(), tx.clone(), log)),
+            )
             .await;
         }
     }
 }
 
-async fn handle_nft_make_offer_log(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftMakeOfferLog,
-) {
+async fn handle_nft_make_offer_log(rt: TxProcessingRuntime, tx: ReceiptData, log: NftMakeOfferLog) {
     future::join(
         insert_nft_offer(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
@@ -32,23 +30,14 @@ async fn handle_nft_make_offer_log(
     .await;
 }
 
-async fn insert_nft_offer(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftMakeOfferLog,
-) {
-    let (nft_contract, token_id, approval_id) =
-        match super::parse_list_id(&log.list_id) {
-            None => {
-                crate::error!(
-                    "Unparseable list ID: {}, ({:?})",
-                    log.list_id,
-                    tx
-                );
-                return;
-            }
-            Some(triple) => triple,
-        };
+async fn insert_nft_offer(rt: TxProcessingRuntime, tx: ReceiptData, log: NftMakeOfferLog) {
+    let (nft_contract, token_id, approval_id) = match super::parse_list_id(&log.list_id) {
+        None => {
+            crate::error!("Unparseable list ID: {}, ({:?})", log.list_id, tx);
+            return;
+        }
+        Some(triple) => triple,
+    };
 
     let offer = NftOffer {
         nft_contract_id: nft_contract.to_string(),
@@ -65,10 +54,7 @@ async fn insert_nft_offer(
         referral_amount: None,
         withdrawn_at: None,
         accepted_at: None,
-        expires_at: Some(chrono::NaiveDateTime::from_timestamp(
-            log.offer.timeout as i64,
-            0,
-        )),
+        expires_at: Some(crate::nsecs_to_timestamp(log.offer.timeout)),
     };
 
     diesel::insert_into(nft_offers::table)
@@ -77,11 +63,7 @@ async fn insert_nft_offer(
         .await
 }
 
-async fn insert_nft_activities(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftMakeOfferLog,
-) {
+async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: NftMakeOfferLog) {
     let (nft_contract, token_id, _) = match super::parse_list_id(&log.list_id) {
         None => {
             crate::error!("Unparseable list ID: {}, ({:?})", log.list_id, tx);
