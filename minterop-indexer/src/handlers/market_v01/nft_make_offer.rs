@@ -65,6 +65,10 @@ async fn insert_nft_offer(
         referral_amount: None,
         withdrawn_at: None,
         accepted_at: None,
+        expires_at: Some(chrono::NaiveDateTime::from_timestamp(
+            log.offer.timeout as i64,
+            0,
+        )),
     };
 
     diesel::insert_into(nft_offers::table)
