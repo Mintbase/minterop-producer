@@ -4,7 +4,7 @@ mod prelude {
         ExpressionMethods,
     };
     pub use futures::future;
-    pub use minterop_common::{
+    pub use minterop_data::{
         db_rows::*,
         pg_numeric,
         schema::*,

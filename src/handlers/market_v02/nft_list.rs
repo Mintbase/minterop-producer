@@ -1,4 +1,4 @@
-use mb_sdk::events::mb_market_v01::*;
+use mb_sdk::events::mb_market_v02::*;
 
 use crate::handlers::prelude::*;
 
@@ -9,27 +9,17 @@ pub(crate) async fn handle_nft_list(
 ) {
     // TODO: unknown token contract?
 
-    match serde_json::from_value::<Vec<NftListLog>>(data.clone()) {
-        Err(_) => error!(r#"Invalid log for "nft_list": {} ({:?})"#, data, tx),
-        Ok(data_logs) => {
-            future::join_all(
-                data_logs.into_iter().map(|log| {
-                    handle_nft_list_log(rt.clone(), tx.clone(), log)
-                }),
-            )
-            .await;
+    let data = match serde_json::from_value::<NftListData>(data.clone()) {
+        Err(_) => {
+            error!(r#"Invalid log for "nft_list": {} ({:?})"#, data, tx);
+            return;
         }
-    }
-}
+        Ok(data) => data,
+    };
 
-async fn handle_nft_list_log(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftListLog,
-) {
     future::join(
-        insert_nft_listing(rt.clone(), tx.clone(), log.clone()),
-        insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
+        insert_nft_listing(rt.clone(), tx.clone(), data.clone()),
+        insert_nft_activities(rt.clone(), tx.clone(), data.clone()),
     )
     .await;
 }
@@ -37,29 +27,37 @@ async fn handle_nft_list_log(
 async fn insert_nft_listing(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    log: NftListLog,
+    data: NftListData,
 ) {
-    let approval_id = log.approval_id.parse().unwrap();
-    let kind = if log.autotransfer {
-        NFT_LISTING_KIND_SIMPLE.to_string()
-    } else {
-        NFT_LISTING_KIND_AUCTION.to_string()
+    let metadata_id = match crate::database::query_metadata_id(
+        data.nft_contract_id.to_string(),
+        data.nft_token_id.clone(),
+        &rt.pg_connection,
+    )
+    .await
+    {
+        None => {
+            crate::error!("Failed to find metadata ID ({:?})", tx);
+            return;
+        }
+        Some(metadata_id) => metadata_id,
     };
 
     let listing = NftListing {
-        nft_contract_id: log.store_id,
-        token_id: log.token_id,
+        nft_contract_id: data.nft_contract_id.to_string(),
+        token_id: data.nft_token_id,
         market_id: tx.receiver.to_string(),
-        approval_id,
+        approval_id: pg_numeric(data.nft_approval_id),
         created_at: tx.timestamp,
         receipt_id: tx.id.clone(),
-        kind,
-        price: Some(pg_numeric(log.price.0)),
-        currency: "near".to_string(),
-        listed_by: log.owner_id,
+        kind: data.kind,
+        price: Some(pg_numeric(data.price.0)),
+        currency: data.currency,
+        listed_by: data.nft_owner_id.to_string(),
         unlisted_at: None,
         accepted_at: None,
         accepted_offer_id: None,
+        metadata_id,
     };
 
     diesel::insert_into(nft_listings::table)
@@ -71,20 +69,20 @@ async fn insert_nft_listing(
 async fn insert_nft_activities(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    log: NftListLog,
+    data: NftListData,
 ) {
     let activity = NftActivity {
         receipt_id: tx.id.clone(),
         tx_sender: tx.sender.to_string(),
         sender_pk: tx.sender_pk.clone(),
         timestamp: tx.timestamp,
-        nft_contract_id: log.store_id,
-        token_id: log.token_id,
+        nft_contract_id: data.nft_contract_id.to_string(),
+        token_id: data.nft_token_id,
         kind: NFT_ACTIVITY_KIND_LIST.to_string(),
         action_sender: None,
         action_receiver: None,
         memo: None,
-        price: Some(pg_numeric(log.price.0)),
+        price: Some(pg_numeric(data.price.0)),
     };
 
     diesel::insert_into(nft_activities::table)

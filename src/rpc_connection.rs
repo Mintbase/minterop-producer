@@ -5,7 +5,7 @@ use hyper::{
     Body,
     Request,
 };
-use minterop_common::rpc_payloads::*;
+use minterop_data::rpc_payloads::*;
 use near_lake_framework::near_indexer_primitives::types::AccountId;
 
 type Client = hyper::Client<
@@ -30,12 +30,13 @@ impl MinteropRpcConnector {
     pub async fn contract(&self, contract_id: AccountId) {
         // FIXME: using https leads to "record overflow"
         // FIXME: sometimes I need the slash, sometimes not?!
-        let contract = Contract {
-            contract_id: contract_id.to_string(),
-        };
-        let req = post_json(&self.endpoint.to_string(), &contract);
 
-        crate::debug!("contract event publish: {:?}", req);
+        let req = post_json(
+            &self.endpoint.to_string(),
+            &RpcMessage::from_contract(contract_id.to_string()),
+        );
+
+        crate::debug!("req: {:?}", req);
         let res = self.client.request(req).await;
         crate::debug!("res: {:?}", res);
 
@@ -49,19 +50,24 @@ impl MinteropRpcConnector {
         // TODO: check response for status code (later)
     }
 
-    pub async fn token(&self, contract_id: AccountId, token_ids: Vec<String>) {
-        let token = Token {
-            contract_id: contract_id.to_string(),
-            token_ids: token_ids.clone(),
-        };
+    pub async fn token(
+        &self,
+        contract_id: AccountId,
+        token_ids: Vec<String>,
+        minter: Option<String>,
+    ) {
         let req = post_json(
             // FIXME: using https leads to "record overflow"
             // FIXME: sometimes I need the slash, sometimes not?!
             &self.endpoint.to_string(),
-            &token,
+            &RpcMessage::from_token(
+                contract_id.to_string(),
+                token_ids.clone(),
+                minter,
+            ),
         );
 
-        crate::debug!("token event publish: {:?}", req);
+        crate::debug!("req: {:?}", req);
         let res = self.client.request(req).await;
         crate::debug!("res: {:?}", res);
 

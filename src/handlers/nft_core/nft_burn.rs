@@ -1,11 +1,6 @@
 use mb_sdk::events::nft_core::NftBurnLog;
 
-use crate::{
-    error,
-    handlers::prelude::*,
-    runtime::TxProcessingRuntime,
-    ReceiptData,
-};
+use crate::{error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData};
 
 pub(crate) async fn handle_nft_burn(
     rt: &TxProcessingRuntime,
@@ -28,11 +23,7 @@ pub(crate) async fn handle_nft_burn(
     }
 }
 
-async fn handle_nft_burn_log(
-    rt: &TxProcessingRuntime,
-    tx: &ReceiptData,
-    log: NftBurnLog,
-) {
+async fn handle_nft_burn_log(rt: &TxProcessingRuntime, tx: &ReceiptData, log: NftBurnLog) {
     future::join(
         insert_nft_tokens(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
@@ -40,12 +31,8 @@ async fn handle_nft_burn_log(
     .await;
 }
 
-async fn insert_nft_tokens(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftBurnLog,
-) {
-    use minterop_common::schema::nft_tokens::dsl;
+async fn insert_nft_tokens(rt: TxProcessingRuntime, tx: ReceiptData, log: NftBurnLog) {
+    use minterop_data::schema::nft_tokens::dsl;
 
     let tokens = log
         .token_ids
@@ -72,11 +59,7 @@ async fn insert_nft_tokens(
         .await
 }
 
-async fn insert_nft_activities(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftBurnLog,
-) {
+async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: NftBurnLog) {
     let activities = log
         .token_ids
         .iter()

@@ -42,7 +42,11 @@ async fn handle_nft_transfer_log(
 
     tokio::spawn(async move {
         rt.minterop_rpc
-            .token(tx.receiver.clone(), log.token_ids)
+            .token(
+                tx.receiver.clone(),
+                log.token_ids,
+                Some(tx.sender.to_string()),
+            )
             .await
     });
 }
@@ -52,7 +56,7 @@ async fn insert_nft_tokens(
     tx: ReceiptData,
     log: NftTransferLog,
 ) {
-    use minterop_common::schema::nft_tokens::dsl;
+    use minterop_data::schema::nft_tokens::dsl;
 
     let tokens = log
         .token_ids

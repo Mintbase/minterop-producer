@@ -69,7 +69,7 @@ impl Config {
 
     /// Migrates the database to the most recent schema
     pub fn migrate_db(&self) -> Result<()> {
-        minterop_common::run_migrations(&self.postgres)
+        minterop_data::run_migrations(&self.postgres)
     }
 }
 

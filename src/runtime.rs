@@ -278,7 +278,7 @@ fn filter_and_split_receipt(
 async fn update_db_blockheight(db: &DbConnPool, height: u64) {
     use actix_diesel::dsl::AsyncRunQueryDsl;
     use diesel::ExpressionMethods;
-    use minterop_common::schema::blocks::dsl::*;
+    use minterop_data::schema::blocks::dsl::*;
 
     diesel::update(blocks)
         .set(synced_height.eq(height as i64))

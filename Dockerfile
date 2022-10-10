@@ -1,29 +1,14 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.60 AS chef
+FROM rust:latest AS builder
+RUN apt-get update && apt-get install -y libpq5 ca-certificates
 WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY src src
+RUN cargo build --release
 
-# Planning the actual build
-FROM chef AS planner
-COPY minterop-common/Cargo.toml      minterop-common/Cargo.toml
-COPY minterop-indexer/Cargo.toml     minterop-indexer/Cargo.toml
-COPY minterop-rpc-service/Cargo.toml minterop-rpc-service/Cargo.toml
-COPY integration-tests/Cargo.toml    integration-tests/Cargo.toml
-COPY Cargo.lock Cargo.toml ./
-RUN cargo chef prepare --recipe-path recipe.json
-
-# Building
-FROM chef AS builder
+# Running the app
+FROM debian:latest
+RUN apt-get update && apt-get install -y libpq5 ca-certificates
 WORKDIR /app
-# Build dependencies so they are cached in an intermediary docker image
-COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
-# Now build the actual app
-COPY minterop-common/Cargo.toml      minterop-common/Cargo.toml
-COPY minterop-common/migrations      minterop-common/migrations
-COPY minterop-common/src             minterop-common/src
-COPY minterop-indexer/Cargo.toml     minterop-indexer/Cargo.toml
-COPY minterop-indexer/src            minterop-indexer/src
-COPY minterop-rpc-service/Cargo.toml minterop-rpc-service/Cargo.toml
-COPY minterop-rpc-service/src        minterop-rpc-service/src
-COPY integration-tests/Cargo.toml    integration-tests/Cargo.toml
-COPY integration-tests/src           integration-tests/src
-COPY Cargo.lock Cargo.toml ./
+COPY --from=builder /app/target/release/minterop_indexer /usr/local/bin
+RUN touch .env
+CMD ["/usr/local/bin/minterop_indexer"]

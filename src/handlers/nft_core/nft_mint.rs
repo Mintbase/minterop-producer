@@ -42,7 +42,11 @@ async fn handle_nft_mint_log(
 
     tokio::spawn(async move {
         rt.minterop_rpc
-            .token(tx.receiver.clone(), log.token_ids)
+            .token(
+                tx.receiver.clone(),
+                log.token_ids,
+                Some(tx.sender.to_string()),
+            )
             .await
     });
 }

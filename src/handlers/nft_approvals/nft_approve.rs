@@ -12,19 +12,17 @@ pub(crate) async fn handle_nft_approve(
             error!(r#"Invalid log for "nft_transfer": {} ({:?})"#, data, tx)
         }
         Ok(data_logs) => {
-            future::join_all(data_logs.into_iter().map(|log| {
-                handle_nft_approve_log(rt.clone(), tx.clone(), log)
-            }))
+            future::join_all(
+                data_logs
+                    .into_iter()
+                    .map(|log| handle_nft_approve_log(rt.clone(), tx.clone(), log)),
+            )
             .await;
         }
     }
 }
 
-async fn handle_nft_approve_log(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftApproveLog,
-) {
+async fn handle_nft_approve_log(rt: TxProcessingRuntime, tx: ReceiptData, log: NftApproveLog) {
     future::join(
         insert_nft_approvals(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
@@ -32,12 +30,8 @@ async fn handle_nft_approve_log(
     .await;
 }
 
-async fn insert_nft_approvals(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftApproveLog,
-) {
-    use minterop_common::schema::nft_approvals::dsl;
+async fn insert_nft_approvals(rt: TxProcessingRuntime, tx: ReceiptData, log: NftApproveLog) {
+    use minterop_data::schema::nft_approvals::dsl;
 
     diesel::insert_into(nft_approvals::table)
         .values(NftApproval {
@@ -55,11 +49,7 @@ async fn insert_nft_approvals(
         .await
 }
 
-async fn insert_nft_activities(
-    rt: TxProcessingRuntime,
-    tx: ReceiptData,
-    log: NftApproveLog,
-) {
+async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: NftApproveLog) {
     diesel::insert_into(nft_activities::table)
         .values(NftActivity {
             receipt_id: tx.id.clone(),
