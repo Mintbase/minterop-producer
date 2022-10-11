@@ -235,15 +235,6 @@ fn filter_and_split_receipt(
 ) -> Option<(ReceiptData, Vec<String>)> {
     use near_lake_framework::near_indexer_primitives::views;
 
-    let nsecs_to_timestamp = |nsecs| {
-        let nsecs_rem = nsecs % 1_000_000_000;
-        let secs = (nsecs - nsecs_rem) / 1_000_000_000;
-        chrono::naive::NaiveDateTime::from_timestamp(
-            secs as i64,
-            nsecs_rem as u32,
-        )
-    };
-
     // check for tx success
     match tx.execution_outcome.outcome.status {
         views::ExecutionStatusView::Unknown => None,
@@ -263,7 +254,9 @@ fn filter_and_split_receipt(
                         _ => None,
                     },
                     receiver: tx.receipt.receiver_id,
-                    timestamp: nsecs_to_timestamp(header.timestamp_nanosec),
+                    timestamp: crate::nsecs_to_timestamp(
+                        header.timestamp_nanosec,
+                    ),
                     // block_height: header.height,
                 },
                 tx.execution_outcome.outcome.logs,

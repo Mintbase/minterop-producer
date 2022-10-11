@@ -44,6 +44,7 @@ async fn insert_nft_offer(
             .map(|balance| balance.0.to_string()),
         withdrawn_at: None,
         accepted_at: None,
+        expires_at: None,
     };
 
     diesel::insert_into(nft_offers::table)
