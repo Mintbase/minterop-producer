@@ -1,6 +1,12 @@
 import { Account, Contract } from "near-api-js";
-import { CONTRACT_STORAGE_DEPOSIT, DEFAULT_STORE_CONTRACT, FACTORY_ACCOUNT, GAS, MAX_GAS, ONE_NEAR } from "./constants";
-
+import {
+  CONTRACT_STORAGE_DEPOSIT,
+  DEFAULT_STORE_CONTRACT,
+  FACTORY_ACCOUNT,
+  GAS,
+  MAX_GAS,
+  ONE_NEAR,
+} from "./constants";
 
 export type EventLog = {
   standard: string;
@@ -64,8 +70,6 @@ export const mintTokensWithAccount = async (
   const [{ token_ids }] = data;
   return token_ids;
 };
-
-
 
 // Good examples, not used regularly
 export type StoreContract = {

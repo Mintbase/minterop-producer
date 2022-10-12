@@ -3,10 +3,9 @@
 network="$1"
 commit_hash="$2"
 
-
 gcloud compute instances delete "minterop-producer-$network" -q \
-  --project=omni-cloud-1 \
-  --zone=europe-west1-b
+	--project=omni-cloud-1 \
+	--zone=europe-west1-b
 # this is brittle in two places: but it get's smooshed into JSON, the .env
 # may not contain double quotes `"`, and because we use `&` for newline
 # serialization, we can not have `&` anywhere. `tr` limits us to single

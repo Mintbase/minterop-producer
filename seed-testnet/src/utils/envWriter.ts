@@ -21,7 +21,6 @@ export class EnvWriter {
   private readEnvVars = () =>
     fs.readFileSync(this.envPath, "utf-8").split(os.EOL);
 
-
   private findAndSubstituteInEnv = (
     key: string,
     value: string,
