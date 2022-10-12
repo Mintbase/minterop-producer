@@ -4,8 +4,8 @@ network="$1"
 commit_hash="$2"
 
 gcloud compute instances delete "minterop-producer-$network" -q \
-	--project=omni-cloud-1 \
-	--zone=europe-west1-b
+  --project=omni-cloud-1 \
+  --zone=europe-west1-b
 # this is brittle in two places: but it get's smooshed into JSON, the .env
 # may not contain double quotes `"`, and because we use `&` for newline
 # serialization, we can not have `&` anywhere. `tr` limits us to single
@@ -19,13 +19,13 @@ INSTANCE_NAME="minterop-producer-$network"
 gsutil cp "$PWD/indexer-startup.sh" "$STARTUP_SCRIPT"
 
 gcloud compute instances create "$INSTANCE_NAME" \
-	--project=omni-cloud-1 \
-	--zone=europe-west1-b \
-	--machine-type=c2-standard-4 \
-	--boot-disk-size=10GB \
-	--metadata startup-script-url="$STARTUP_SCRIPT,DOTENV=${DOTENV},COMMIT_HASH=${commit_hash}" \
-	--service-account=indexer-vm@omni-cloud-1.iam.gserviceaccount.com \
-	--scopes=https://www.googleapis.com/auth/cloud-platform #&&
+  --project=omni-cloud-1 \
+  --zone=europe-west1-b \
+  --machine-type=c2-standard-4 \
+  --boot-disk-size=10GB \
+  --metadata startup-script-url="$STARTUP_SCRIPT,DOTENV=${DOTENV},COMMIT_HASH=${commit_hash}" \
+  --service-account=indexer-vm@omni-cloud-1.iam.gserviceaccount.com \
+  --scopes=https://www.googleapis.com/auth/cloud-platform #&&
 #gcloud compute instances tail-serial-port-output "$INSTANCE_NAME"
 
 # To delete the instance:
