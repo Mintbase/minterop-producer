@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=minterop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      retries: 3
+      interval: 5s
+    # turn off logging for postgress,
+    # sometimes get mingled with app logs
+    # logging:
+    #   driver: none
+
+  indexer:
+    env_file:
+          - ./.env  
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+
+  event-dispatcher:
+    image: gcr.io/omni-cloud-1/event-dispatcher:latest    
+    environment:
+      - GCP_PUBSUB_TOPIC=ci-indexer-fanout
+      - GCP_PUBSUB_SUBSCRIPTION_NAME=minterop-dispatched-ci
+      - PROJECT_ID=omni-cloud-1	
+      - GOOGLE_APPLICATION_CREDENTIALS=./sa.json	
+      - SUBSCRIPTION_PUSH_ENDPOINT=https://loaclhost:8000/metadata	
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: curl --fail localhost:3000/ || exit 1
+      interval: 60s
+      retries: 5
+      start_period: 20s
+      timeout: 10s  
+  
+  metadata_resolver:
+    image: gcr.io/omni-cloud-1/metadata-resolver:latest 
+    ports:
+      # Allow sending local payloads for testing
+      - "8000:8000"
+    environment:
+      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+      - RUST_LOG=minterop-rpc=debug
+      - PORT=8000
+      - NEAR_RPC_URL=https://rpc.mainnet.near.org
+      - MINTBASE_ROOT=mintbase1.near
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:8000/health"]
+      retries: 3
+      interval: 2s      
+
+  # tests:
+  #   build:
+  #     context: ./integration-tests
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     - indexer
+  #   volumes:
+  #     - $PWD/.env:/app/.env
+  #   environment:
+  #     - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+  #   command: bash -c "while ping -c1 indexer &>/dev/null; do sleep 1; done; echo 'Indexer finished' && cargo test"
