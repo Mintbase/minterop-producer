@@ -11,13 +11,11 @@ import {
 import { DEFAULT_STORE_CONTRACT } from "./constants";
 import { createSeries, mintParasToken } from "./paras";
 import { fetchCurrentBlockHeight } from "./rpc";
-import { EnvWriter } from "./utils/envWriter"
+import { EnvWriter } from "./utils/envWriter";
 import { parasListAndSale } from "./workflows/parasListAndSale";
 import { simpleBurn } from "./workflows/simpleBurn";
 import { simpleListAndSale } from "./workflows/simpleListAndSale";
 import { simpleTransfer } from "./workflows/simpleTransfer";
-
-
 
 async function main() {
   // call RPC to get current block height
@@ -73,13 +71,13 @@ async function main() {
   const listAndPurchase = await parasListAndSale(bob, carol, parasToken[0]);
 
   const stopBlockHeight = await fetchCurrentBlockHeight();
-  
+
   //write to env
-  const envWriter = new EnvWriter("../.env")
+  const envWriter = new EnvWriter("../.env");
   envWriter.setEnvValues({
-    "START_BLOCK_HEIGHT": startBlockHeight,
-    "STOP_BLOCK_HEIGHT": stopBlockHeight +5 //kinda hacky, addded 5 to block height to give some time to last transaction that wasnt getting processed in time
-  })
+    START_BLOCK_HEIGHT: startBlockHeight,
+    STOP_BLOCK_HEIGHT: stopBlockHeight + 5, //kinda hacky, addded 5 to block height to give some time to last transaction that wasnt getting processed in time
+  });
 
   return {
     transferResult,

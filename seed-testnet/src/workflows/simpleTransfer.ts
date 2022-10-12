@@ -1,5 +1,5 @@
 import { Account } from "near-api-js";
-import { callContractMethod} from "../calls";
+import { callContractMethod } from "../calls";
 import { DEFAULT_STORE_CONTRACT, MAX_GAS } from "../constants";
 
 export const simpleTransfer = async (

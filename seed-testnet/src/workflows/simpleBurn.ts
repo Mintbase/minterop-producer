@@ -9,7 +9,6 @@ export const simpleBurn = async (
   tokenIds: string[],
   method = "nft_batch_burn"
 ): Promise<any> => {
-
   const burnCall = await callContractMethod(
     account,
     DEFAULT_STORE_CONTRACT,

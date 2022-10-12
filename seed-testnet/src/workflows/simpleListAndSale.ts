@@ -1,7 +1,5 @@
 import { Account, utils } from "near-api-js";
-import {
-  callContractMethod,
-} from "../calls";
+import { callContractMethod } from "../calls";
 import { DEFAULT_STORE_CONTRACT, MARKET_CONTRACT, MAX_GAS } from "../constants";
 
 const nearToYocto = utils.format.parseNearAmount;
