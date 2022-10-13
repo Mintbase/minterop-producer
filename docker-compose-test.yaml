@@ -13,35 +13,53 @@ services:
       interval: 5s
     # turn off logging for postgress,
     # sometimes get mingled with app logs
-    # logging:
-    #   driver: none
+    logging:
+      driver: none
 
   indexer:
-    env_file:
-          - ./.env  
+    # TODO: mount aws creds, mount env file
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # event_dispatcher:
+      #   condition: service_healthy
+      metadata_resolver:
+        condition: service_healthy
+    volumes:
+      - $PWD/.env:/app/.env
+      # FIXME: location will probably be different inside GH actions
+      - $HOME/.aws:/root/.aws
+    environment:
+      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+      - S3_BUCKET_NAME=near-lake-data-mainnet
+      - S3_REGION_NAME=eu-central-1
+      - RUST_LOG=minterop=debug
+      - RPC_URL=http://event_dispatcher:3000
+      - MINTBASE_ROOT=mintbase1.near
     build:
-      context: ./
+      # context: ./
       dockerfile: Dockerfile.dev
 
-  event-dispatcher:
-    image: gcr.io/omni-cloud-1/event-dispatcher:latest    
+  event_dispatcher:
+    image: gcr.io/omni-cloud-1/event-dispatcher:latest
     environment:
       - GCP_PUBSUB_TOPIC=ci-indexer-fanout
       - GCP_PUBSUB_SUBSCRIPTION_NAME=minterop-dispatched-ci
-      - PROJECT_ID=omni-cloud-1	
-      - GOOGLE_APPLICATION_CREDENTIALS=./sa.json	
-      - SUBSCRIPTION_PUSH_ENDPOINT=https://loaclhost:8000/metadata	
+      - PROJECT_ID=omni-cloud-1
+      - GOOGLE_APPLICATION_CREDENTIALS=./sa.json
+      - SUBSCRIPTION_PUSH_ENDPOINT=https://localhost:8000/metadata
     ports:
       - "3000:3000"
-    healthcheck:
-      test: curl --fail localhost:3000/ || exit 1
-      interval: 60s
-      retries: 5
-      start_period: 20s
-      timeout: 10s  
-  
+    # FIXME: re-enable health check
+    # healthcheck:
+    #   # TODO: move health check to `health` route
+    #   test: ["CMD-SHELL", "curl --fail http://localhost:3000/"]
+    #   interval: 5s
+    #   retries: 3
+    #   start_period: 10s
+
   metadata_resolver:
-    image: gcr.io/omni-cloud-1/metadata-resolver:latest 
+    image: gcr.io/omni-cloud-1/metadata-resolver:latest
     ports:
       # Allow sending local payloads for testing
       - "8000:8000"
@@ -51,13 +69,16 @@ services:
       - PORT=8000
       - NEAR_RPC_URL=https://rpc.mainnet.near.org
       - MINTBASE_ROOT=mintbase1.near
+      - RUST_LOG=metadata-resolver=debug
+      # FIXME: remove from secret
+      - IMAGE_CACHE_BASE_URL=https://image-cache-service-z3w7d7dnea-ew.a.run.app
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:8000/health"]
       retries: 3
-      interval: 2s      
+      interval: 2s
 
   # tests:
   #   build:
