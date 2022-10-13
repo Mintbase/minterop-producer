@@ -45,6 +45,5 @@ jobs:
         run: |
           cargo clippy -- -D warnings
 
-      # TODO: testing
-      # - name: Smoke tests
-      #   run: metadata-resolver/test.sh
+      - name: Smoke tests
+        run: scripts/run-tests.sh
