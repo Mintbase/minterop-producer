@@ -22,6 +22,5 @@ docker run --name postgresDB \
 export POSTGRES='postgres://postgres:password@127.0.0.1:5432/minterop'
 sleep 3 # wait until postgres is ready
 
-
 RPC_URL='https://event-dispatcher-z3w7d7dnea-ew.a.run.app/publish' \
   cargo run || fail "$?" "Indexer crashed"

@@ -59,7 +59,7 @@ pub(crate) async fn query_metadata_id(
         .await
     {
         Err(_) => None,
-        Ok(values) if values.len() > 0 => match values.get(0) {
+        Ok(values) if !values.is_empty() => match values.get(0) {
             Some(Some(s)) => Some(s.to_string()),
             _ => None,
         },
