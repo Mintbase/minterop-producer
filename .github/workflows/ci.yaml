@@ -6,7 +6,8 @@ on:
 jobs:
   fmt-lint:
     runs-on: ubuntu-22.04
-    name: Test the metadata resolver
+    # TODO: splitting lint/fmt from testing
+    name: Test the indexer
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -44,6 +45,16 @@ jobs:
         # TODO: shellcheck (https://github.com/marketplace/actions/shellcheck)
         run: |
           cargo clippy -- -D warnings
+
+      - name: "Setup AWS Creds"
+        run: |
+          mkdir ~/.aws
+          echo "${{ secrets.AWS_CREDENTIALS }}" > ~/.aws/credentials
+
+      - name: "GCP Auth"
+        uses: "google-github-actions/auth@v0"
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS_TESTNET_KEYS }}"
 
       - name: Smoke tests
         run: scripts/run-tests.sh

@@ -26,7 +26,6 @@ services:
         condition: service_healthy
     volumes:
       - $PWD/.env:/app/.env
-      # TODO: location will probably be different inside GH actions
       - $HOME/.aws:/root/.aws
     environment:
       - POSTGRES=postgres://postgres:password@postgres:5432/minterop
