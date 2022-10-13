@@ -17,7 +17,6 @@ services:
       driver: none
 
   indexer:
-    # TODO: mount aws creds, mount env file
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,7 +26,7 @@ services:
         condition: service_healthy
     volumes:
       - $PWD/.env:/app/.env
-      # FIXME: location will probably be different inside GH actions
+      # TODO: location will probably be different inside GH actions
       - $HOME/.aws:/root/.aws
     environment:
       - POSTGRES=postgres://postgres:password@postgres:5432/minterop
@@ -41,7 +40,7 @@ services:
       dockerfile: Dockerfile.dev
 
   event_dispatcher:
-    image: gcr.io/omni-cloud-1/event-dispatcher:latest
+    image: gcr.io/omni-cloud-1/event-dispatcher:5c4365
     environment:
       - GCP_PUBSUB_TOPIC=ci-indexer-fanout
       - GCP_PUBSUB_SUBSCRIPTION_NAME=minterop-dispatched-ci
@@ -50,16 +49,14 @@ services:
       - SUBSCRIPTION_PUSH_ENDPOINT=https://localhost:8000/metadata
     ports:
       - "3000:3000"
-    # FIXME: re-enable health check
-    # healthcheck:
-    #   # TODO: move health check to `health` route
-    #   test: ["CMD-SHELL", "curl --fail http://localhost:3000/"]
-    #   interval: 5s
-    #   retries: 3
-    #   start_period: 10s
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:3000/health"]
+      interval: 5s
+      retries: 3
+      start_period: 10s
 
   metadata_resolver:
-    image: gcr.io/omni-cloud-1/metadata-resolver:latest
+    image: gcr.io/omni-cloud-1/metadata-resolver:5c4365
     ports:
       # Allow sending local payloads for testing
       - "8000:8000"
@@ -70,8 +67,8 @@ services:
       - NEAR_RPC_URL=https://rpc.mainnet.near.org
       - MINTBASE_ROOT=mintbase1.near
       - RUST_LOG=metadata-resolver=debug
-      # FIXME: remove from secret
-      - IMAGE_CACHE_BASE_URL=https://image-cache-service-z3w7d7dnea-ew.a.run.app
+    volumes:
+      - $PWD/.env:/app/.env
     depends_on:
       postgres:
         condition: service_healthy
