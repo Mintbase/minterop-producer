@@ -57,4 +57,6 @@ jobs:
           credentials_json: "${{ secrets.GCP_CREDENTIALS_TESTNET_KEYS }}"
 
       - name: Smoke tests
-        run: scripts/run-tests.sh
+        run: |
+          touch .env
+          scripts/run-tests.sh
