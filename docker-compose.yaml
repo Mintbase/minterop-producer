@@ -22,22 +22,23 @@ services:
         condition: service_healthy
       # event_dispatcher:
       #   condition: service_healthy
-      metadata_resolver:
-        condition: service_healthy
+      # metadata_resolver:
+      #   condition: service_healthy
     volumes:
       - $PWD/.env:/app/.env
       - $HOME/.aws:/root/.aws
     environment:
       - POSTGRES=postgres://postgres:password@postgres:5432/minterop
-      - S3_BUCKET_NAME=near-lake-data-mainnet
+      - S3_BUCKET_NAME=near-lake-data-testnet
       - S3_REGION_NAME=eu-central-1
       - RUST_LOG=minterop=debug
-      - RPC_URL=http://event_dispatcher:3000
+      - RPC_URL=http://event_dispatcher:3000/publish
       - MINTBASE_ROOT=mintbase1.near
     build:
       context: ./
       dockerfile: Dockerfile.dev
 
+  #todo test payloads
   event_dispatcher:
     image: gcr.io/omni-cloud-1/event-dispatcher:5c4365
     environment:
@@ -54,27 +55,27 @@ services:
       retries: 3
       start_period: 10s
 
-  metadata_resolver:
-    image: gcr.io/omni-cloud-1/metadata-resolver:5c4365
-    ports:
-      # Allow sending local payloads for testing
-      - "8000:8000"
-    environment:
-      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
-      - RUST_LOG=minterop-rpc=debug
-      - PORT=8000
-      - NEAR_RPC_URL=https://rpc.mainnet.near.org
-      - MINTBASE_ROOT=mintbase1.near
-      - RUST_LOG=metadata-resolver=debug
-    volumes:
-      - $PWD/.env:/app/.env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:8000/health"]
-      retries: 3
-      interval: 2s
+  # metadata_resolver:
+  #   image: gcr.io/omni-cloud-1/metadata-resolver:5c4365
+  #   ports:
+  #     # Allow sending local payloads for testing
+  #     - "8000:8000"
+  #   environment:
+  #     - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+  #     - RUST_LOG=minterop-rpc=debug
+  #     - PORT=8000
+  #     - NEAR_RPC_URL=https://rpc.testnet.near.org
+  #     - MINTBASE_ROOT=mintbase1.near
+  #     - RUST_LOG=metadata-resolver=debug
+  #   volumes:
+  #     - $PWD/.env:/app/.env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl http://localhost:8000/health"]
+  #     retries: 3
+  #     interval: 2s
 
   tests:
     build:
