@@ -13,8 +13,6 @@ services:
       interval: 5s
     # turn off logging for postgress,
     # sometimes get mingled with app logs
-    logging:
-      driver: none
 
   indexer:
     depends_on:
@@ -54,7 +52,7 @@ services:
       interval: 5s
       retries: 3
       start_period: 10s
-
+  ## TODO Make this get push requests from gcp somehow for testing
   # metadata_resolver:
   #   image: gcr.io/omni-cloud-1/metadata-resolver:5c4365
   #   ports:

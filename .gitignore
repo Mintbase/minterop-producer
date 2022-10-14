@@ -2,6 +2,8 @@
 /target
 **/.env
 **/*.log
+/cargo.lock
+**/sa.json
 **node_modules
 scripts/run-gcr.sh
 scripts/populate-frontend-db.sh
