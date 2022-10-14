@@ -12,4 +12,4 @@ export const SECRETS_REPO_PATH = "projects/185858989453/secrets/";
 export const PARAS_TOKEN_CONTRACT = "paras-token-v2.testnet";
 
 // These series only has 100 tokens, curiuos to see what happens when we run out
-export const PARAS_TOKEN_TEST_SERIES_ID = "1787";
+export const PARAS_TOKEN_TEST_SERIES_ID = "2192";

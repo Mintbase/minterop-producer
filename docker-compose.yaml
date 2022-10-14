@@ -13,30 +13,72 @@ services:
       interval: 5s
     # turn off logging for postgress,
     # sometimes get mingled with app logs
-    # logging:
-    #   driver: none
 
   indexer:
-    build:
-      context: ./minterop-indexer
-      dockerfile: Dockerfile.dev
     depends_on:
-      rpc:
-        condition: service_healthy
       postgres:
         condition: service_healthy
+      # event_dispatcher:
+      #   condition: service_healthy
+      # metadata_resolver:
+      #   condition: service_healthy
+    volumes:
+      - $PWD/.env:/app/.env
+      - $HOME/.aws:/root/.aws
     environment:
       - POSTGRES=postgres://postgres:password@postgres:5432/minterop
-      - RPC_URL=http://rpc:3000
+      - S3_BUCKET_NAME=near-lake-data-testnet
+      - S3_REGION_NAME=eu-central-1
       - RUST_LOG=minterop=debug
-    volumes:
-      - $HOME/.aws:/root/.aws
-      - $PWD/.env:/app/.env
+      - RPC_URL=http://event_dispatcher:3000/publish
+      - MINTBASE_ROOT=mintbase1.near
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+
+  #todo test payloads
+  event_dispatcher:
+    image: gcr.io/omni-cloud-1/event-dispatcher:5c4365
+    environment:
+      - GCP_PUBSUB_TOPIC=ci-indexer-fanout
+      - GCP_PUBSUB_SUBSCRIPTION_NAME=minterop-dispatched-ci
+      - PROJECT_ID=omni-cloud-1
+      - GOOGLE_APPLICATION_CREDENTIALS=./sa.json
+      - SUBSCRIPTION_PUSH_ENDPOINT=https://localhost:8000/metadata
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:3000/health"]
+      interval: 5s
+      retries: 3
+      start_period: 10s
+  ## TODO Make this get push requests from gcp somehow for testing
+  # metadata_resolver:
+  #   image: gcr.io/omni-cloud-1/metadata-resolver:5c4365
+  #   ports:
+  #     # Allow sending local payloads for testing
+  #     - "8000:8000"
+  #   environment:
+  #     - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+  #     - RUST_LOG=minterop-rpc=debug
+  #     - PORT=8000
+  #     - NEAR_RPC_URL=https://rpc.testnet.near.org
+  #     - MINTBASE_ROOT=mintbase1.near
+  #     - RUST_LOG=metadata-resolver=debug
+  #   volumes:
+  #     - $PWD/.env:/app/.env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl http://localhost:8000/health"]
+  #     retries: 3
+  #     interval: 2s
 
   tests:
     build:
-      context: ./integration-tests
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: Dockerfile.test
     depends_on:
       - indexer
     volumes:
