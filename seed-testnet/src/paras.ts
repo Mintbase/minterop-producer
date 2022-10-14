@@ -7,6 +7,7 @@
 // calling nft_mint: https://explorer.testnet.near.org/transactions/FAPmdbYWHwrrHrZnY6iQHRtQqKeXn6RaSn8jncp2jxQo
 
 import { Account, utils } from "near-api-js";
+import { loadAccount } from "./accounts";
 import { callContractMethod } from "./calls";
 import {
   MAX_GAS,
@@ -28,7 +29,7 @@ export const createSeries = async (owner: Account) => {
         media: "bafkreiadpfvtdi6lzw3nvmlyeyfb6gupharljjkbqtzef3wei6n4rp4o3u",
         reference:
           "bafkreictzt62nt4ba3awdpl4ypyozoqrmspjnmuoindlzpocvnw2ibgugi",
-        copies: 100,
+        copies: 100000000,
       },
       price: null,
       royalty: {
