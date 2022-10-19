@@ -6,7 +6,6 @@ on:
 
 jobs:
   deploy:
-    needs: [build_indexer]
     runs-on: ubuntu-22.04
     name: Deploy and run indexer
     steps:
