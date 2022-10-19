@@ -75,21 +75,7 @@ jobs:
       - name: "Set up Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v0"
 
-      - name: Rust setup
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          override: true
-
-      # get secrets from GH
-      # TODO: currently a problem for CD: this defines the block height
-      # -> only good for redeploy + sandbox
       - name: Redeployment script
-        # TODO: use commit hash again
         run: |
           echo "${{ secrets.SANDBOX_ENV }}" > sandbox.env
-          scripts/deploy-indexer.sh sandbox latest
-        # run: |
-        #   echo "${{ secrets.SANDBOX_ENV }}" > sandbox.env
-        #   scripts/redeploy.sh sandbox ${GITHUB_SHA::6}
+          scripts/deploy-indexer.sh sandbox ${GITHUB_SHA::6}
