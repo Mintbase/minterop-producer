@@ -48,11 +48,11 @@ services:
     # image: gcr.io/omni-cloud-1/event-dispatcher:5c4365
     image: gcr.io/omni-cloud-1/event-dispatcher:latest
     environment:
-      - DEBUG=*
+      #change DEBUG to * or debug for more logs
+      - DEBUG=info
       - PUBSUB_PROJECT_ID=emulator
       - GCP_PUBSUB_TOPIC=ci-indexer-fanout
       - GCP_PUBSUB_SUBSCRIPTION_NAME=minterop-dispatched-ci
-      - PROJECT_ID=emulator
       - PUBSUB_TOPIC=test-topic
       - PUBSUB_SUBSCRIPTION_NAME=test-subscription
       - GOOGLE_APPLICATION_CREDENTIALS=./sa.json
