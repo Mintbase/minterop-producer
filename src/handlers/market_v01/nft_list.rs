@@ -55,9 +55,9 @@ async fn insert_nft_listing(
     {
         None => {
             crate::error!("Failed to find metadata ID ({:?})", tx);
-            return;
+            None
         }
-        Some(metadata_id) => metadata_id,
+        Some(metadata_id) => Some(metadata_id),
     };
 
     let listing = NftListing {
@@ -74,7 +74,7 @@ async fn insert_nft_listing(
         unlisted_at: None,
         accepted_at: None,
         accepted_offer_id: None,
-        metadata_id,
+        metadata_id: None,
     };
 
     diesel::insert_into(nft_listings::table)

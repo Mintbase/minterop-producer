@@ -14,38 +14,40 @@ services:
     # turn off logging for postgress,
     # sometimes get mingled with app logs
 
-  # indexer:
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     # event_dispatcher:
-  #     #   condition: service_healthy
-  #     # metadata_resolver:
-  #     #   condition: service_healthy
-  #   volumes:
-  #     - $PWD/.env:/app/.env
-  #     - $HOME/.aws:/root/.aws
-  #   environment:
-  #     - POSTGRES=postgres://postgres:password@postgres:5432/minterop
-  #     - S3_BUCKET_NAME=near-lake-data-testnet
-  #     - S3_REGION_NAME=eu-central-1
-  #     - RUST_LOG=minterop=debug
-  #     - RPC_URL=http://event_dispatcher:3000/publish
-  #     - MINTBASE_ROOT=mintbase1.near
-  #   build:
-  #     context: ./
-  #     dockerfile: Dockerfile.dev
+  indexer:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # event_dispatcher:
+      #   condition: service_healthy
+      # metadata_resolver:
+      #   condition: service_healthy
+    volumes:
+      - $PWD/.env:/app/.env
+      - $HOME/.aws:/root/.aws
+    environment:
+      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+      - S3_BUCKET_NAME=near-lake-data-testnet
+      - S3_REGION_NAME=eu-central-1
+      - RUST_LOG=minterop=debug
+      - RPC_URL=http://event_dispatcher:3000/publish
+      - MINTBASE_ROOT=mintbase1.near
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
 
 
   emulator:
     image: quzhi65222714/gcp-pubsub-emulator
     ports:
       - "8085:8085"
+    logging:
+      driver: none
 
   # TODO: test payloads
   event_dispatcher:
     # image: gcr.io/omni-cloud-1/event-dispatcher:5c4365
-    image: gcr.io/omni-cloud-1/event-dispatcher:ad1b76
+    image: gcr.io/omni-cloud-1/event-dispatcher:latest
     environment:
       - DEBUG=*
       - PUBSUB_PROJECT_ID=emulator
@@ -56,8 +58,8 @@ services:
       - PUBSUB_SUBSCRIPTION_NAME=test-subscription
       - GOOGLE_APPLICATION_CREDENTIALS=./sa.json
       - PUBSUB_DEADLETTER_TOPIC=test-topic
-      - SUBSCRIPTION_PUSH_ENDPOINT=https://metadata_resolver:8000/metadata
-      - PUBSUB_EMULATOR_HOST=https://emulator:8085
+      - SUBSCRIPTION_PUSH_ENDPOINT=http://metadata_resolver:8000/metadata
+      - PUBSUB_EMULATOR_HOST=http://emulator:8085
     ports:
       - "3000:3000"
     healthcheck:
@@ -68,7 +70,7 @@ services:
 
   ## TODO Make this get push requests from gcp somehow for testing
   metadata_resolver:
-    image: gcr.io/omni-cloud-1/metadata-resolver:ad1b76
+    image: gcr.io/omni-cloud-1/metadata-resolver:latest
     ports:
       # Allow sending local payloads for testing
       - "8000:8000"
@@ -89,14 +91,14 @@ services:
       retries: 3
       interval: 2s
 
-  # tests:
-  #   build:
-  #     context: ./
-  #     dockerfile: Dockerfile.test
-  #   depends_on:
-  #     - indexer
-  #   volumes:
-  #     - $PWD/.env:/app/.env
-  #   environment:
-  #     - POSTGRES=postgres://postgres:password@postgres:5432/minterop
-  #   command: bash -c "while ping -c1 indexer &>/dev/null; do sleep 1; done; echo 'Indexer finished' && cargo test"
+  tests:
+    build:
+      context: ./
+      dockerfile: Dockerfile.test
+    depends_on:
+      - indexer
+    volumes:
+      - $PWD/.env:/app/.env
+    environment:
+      - POSTGRES=postgres://postgres:password@postgres:5432/minterop
+    command: bash -c "while ping -c1 indexer &>/dev/null; do sleep 1; done; echo 'Indexer finished' && cargo test"
