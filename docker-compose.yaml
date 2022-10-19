@@ -46,7 +46,7 @@ services:
   # TODO: test payloads
   event_dispatcher:
     # image: gcr.io/omni-cloud-1/event-dispatcher:5c4365
-    image: gcr.io/omni-cloud-1/event-dispatcher:latest
+    image: gcr.io/omni-cloud-1/event-dispatcher:ebe823
     environment:
       #change DEBUG to * or debug for more logs
       - DEBUG=info
@@ -69,7 +69,7 @@ services:
 
   ## TODO Make this get push requests from gcp somehow for testing
   metadata_resolver:
-    image: gcr.io/omni-cloud-1/metadata-resolver:latest
+    image: gcr.io/omni-cloud-1/metadata-resolver:ebe823
     ports:
       # Allow sending local payloads for testing
       - "8000:8000"

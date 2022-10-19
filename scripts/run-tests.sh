@@ -7,5 +7,5 @@
 ) || exit 1
 
 docker-compose build || exit 1
-docker-compose run tests || exit 1
+docker-compose up || exit 1
 docker-compose down
