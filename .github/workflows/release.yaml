@@ -1,0 +1,32 @@
+name: Minterop Producer CICD
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    name: Deploy and run indexer
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      # Authenticate/setup gcloud
+      - id: "auth"
+        uses: "google-github-actions/auth@v0"
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v0"
+
+      - name: Redeployment script (testnet)
+        run: |
+          echo "${{ secrets.TESTNET_ENV }}" > testnet.env
+          scripts/deploy-indexer.sh testnet ${GITHUB_SHA::6}
+
+      - name: Redeployment script (mainnet)
+        run: |
+          echo "${{ secrets.MAINNET_ENV }}" > mainnet.env
+          scripts/deploy-indexer.sh mainnet ${GITHUB_SHA::6}
