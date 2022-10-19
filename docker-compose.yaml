@@ -36,7 +36,6 @@ services:
       context: ./
       dockerfile: Dockerfile.dev
 
-
   emulator:
     image: quzhi65222714/gcp-pubsub-emulator
     ports:
