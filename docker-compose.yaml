@@ -97,4 +97,4 @@ services:
       - $PWD/.env:/app/.env
     environment:
       - POSTGRES=postgres://postgres:password@postgres:5432/minterop
-    command: bash -c "while ping -c1 indexer &>/dev/null; do sleep 1; done; echo 'Indexer finished' && cargo test"
+    command: sleep 3600
