@@ -59,7 +59,7 @@ jobs:
 
       - name: Smoke tests
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" |\
+          echo "${{ secrets.GCP_CREDENTIALS }}" | tr -d $'\n ' |\
             docker login -u _json_key --password-stdin https://gcr.io
           touch .env
           scripts/run-tests.sh
