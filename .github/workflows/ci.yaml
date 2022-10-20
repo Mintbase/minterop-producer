@@ -57,9 +57,14 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS_TESTNET_KEYS }}"
 
+      - name: "GCR Auth"
+        uses: docker/login-action@v2
+        with:
+          registry: gcr.io
+          username: _json_key
+          password: ${{ secrets.GCR_JSON_KEY }}
+
       - name: Smoke tests
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" > sa.json
-          cat sa.json | base64 | docker login -u _json_key_base64 --password-stdin https://gcr.io
           touch .env
           scripts/run-tests.sh
