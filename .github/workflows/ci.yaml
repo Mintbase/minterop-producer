@@ -12,39 +12,40 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Rust setup
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly # TODO: back to stable once fmt features are stable
-          default: true
-          override: true
-          components: rustfmt, clippy
+      # FIXME: reactivate
+      # - name: Rust setup
+      #   uses: actions-rs/toolchain@v1
+      #   with:
+      #     toolchain: nightly # TODO: back to stable once fmt features are stable
+      #     default: true
+      #     override: true
+      #     components: rustfmt, clippy
 
-      - name: shftmt setup
-        uses: mfinelli/setup-shfmt@v1
+      # - name: shftmt setup
+      #   uses: mfinelli/setup-shfmt@v1
 
-      - name: shellcheck setup
-        uses: mfinelli/setup-shfmt@v1
+      # - name: shellcheck setup
+      #   uses: mfinelli/setup-shfmt@v1
 
-      - name: taplo setup
-        # TODO: use precompiled if available (https://github.com/tamasfe/taplo/issues/326)
-        # --debug to speed up the install
-        run: cargo install --debug taplo-cli
+      # - name: taplo setup
+      #   # TODO: use precompiled if available (https://github.com/tamasfe/taplo/issues/326)
+      #   # --debug to speed up the install
+      #   run: cargo install --debug taplo-cli
 
-      - name: Prettier setup
-        run: sudo apt-get install npm && npm install --global prettier
+      # - name: Prettier setup
+      #   run: sudo apt-get install npm && npm install --global prettier
 
-      - name: Formatting
-        run: |
-          cargo +nightly fmt -- --check
-          shfmt -i 2 -d .
-          taplo fmt **/*.toml --check
-          prettier . --check
+      # - name: Formatting
+      #   run: |
+      #     cargo +nightly fmt -- --check
+      #     shfmt -i 2 -d .
+      #     taplo fmt **/*.toml --check
+      #     prettier . --check
 
-      - name: Linting
-        # TODO: shellcheck (https://github.com/marketplace/actions/shellcheck)
-        run: |
-          cargo clippy -- -D warnings
+      # - name: Linting
+      #   # TODO: shellcheck (https://github.com/marketplace/actions/shellcheck)
+      #   run: |
+      #     cargo clippy -- -D warnings
 
       - name: "Setup AWS Creds"
         run: |
@@ -58,5 +59,7 @@ jobs:
 
       - name: Smoke tests
         run: |
+          echo "${{ secrets.GCP_CREDENTIALS }}" > sa.json
+          cat sa.json | docker login -u _json_key --password-stdin https://gcr.io
           touch .env
           scripts/run-tests.sh
