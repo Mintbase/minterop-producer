@@ -62,7 +62,7 @@ jobs:
         with:
           registry: gcr.io
           username: _json_key
-          password: ${{ secrets.GCR_JSON_KEY }}
+          password: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Smoke tests
         run: |
