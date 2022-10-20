@@ -31,7 +31,7 @@ services:
       - S3_REGION_NAME=eu-central-1
       - RUST_LOG=minterop=debug
       - RPC_URL=http://event_dispatcher:3000/publish
-      - MINTBASE_ROOT=mintbase1.near
+      - MINTBASE_ROOT=mintspace2.testnet
     build:
       context: ./
       dockerfile: Dockerfile.dev
@@ -43,10 +43,8 @@ services:
     logging:
       driver: none
 
-  # TODO: test payloads
   event_dispatcher:
-    # image: gcr.io/omni-cloud-1/event-dispatcher:5c4365
-    image: gcr.io/omni-cloud-1/event-dispatcher:ebe823
+    image: gcr.io/omni-cloud-1/event-dispatcher:aa3322
     environment:
       #change DEBUG to * or debug for more logs
       - DEBUG=info
@@ -69,16 +67,15 @@ services:
 
   ## TODO Make this get push requests from gcp somehow for testing
   metadata_resolver:
-    image: gcr.io/omni-cloud-1/metadata-resolver:ebe823
+    image: gcr.io/omni-cloud-1/metadata-resolver:aa3322
     ports:
       # Allow sending local payloads for testing
       - "8000:8000"
     environment:
       - POSTGRES=postgres://postgres:password@postgres:5432/minterop
-      - RUST_LOG=minterop-rpc=debug
       - PORT=8000
       - NEAR_RPC_URL=https://rpc.testnet.near.org
-      - MINTBASE_ROOT=mintbase1.near
+      - MINTBASE_ROOT=mintspace2.testnet
       - RUST_LOG=metadata-resolver=debug
     volumes:
       - $PWD/.env:/app/.env
