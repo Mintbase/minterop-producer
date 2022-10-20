@@ -66,5 +66,5 @@ jobs:
 
       - name: Smoke tests
         run: |
-          touch .env
+          echo "IMAGE_CACHE_BASE_URL=${{ secrets.IMAGE_CACHE_BASE_URL }}" > .env
           scripts/run-tests.sh
