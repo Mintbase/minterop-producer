@@ -1,6 +1,7 @@
 export const CONTRACT_STORAGE_DEPOSIT = "7000000000000000000000000";
 export const DEFAULT_STORE_CONTRACT = "mb_store.mintspace2.testnet";
 export const MARKET_CONTRACT = "market-v2-beta.mintspace2.testnet";
+export const AUCTION_MARKET_CONTRACT = "market.mintspace2.testnet";
 export const ONE_NEAR = "1000000000000000000000000";
 export const TWO_NEAR = "2000000000000000000000000";
 export const GAS = "200000000000000";

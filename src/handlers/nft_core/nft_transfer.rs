@@ -34,9 +34,11 @@ async fn handle_nft_transfer_log(
     log: NftTransferLog,
 ) {
     // TODO: join in RPC call? -> would require `on_conflict`
-    future::join(
+    future::join4(
         insert_nft_tokens(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
+        invalidate_nft_listings(rt.clone(), tx.clone(), log.clone()),
+        invalidate_nft_offers(rt.clone(), tx.clone(), log.clone()),
     )
     .await;
 
@@ -111,4 +113,40 @@ async fn insert_nft_activities(
         .values(activities)
         .execute_db(&rt.pg_connection, &tx, "insert activity on transfer")
         .await
+}
+
+async fn invalidate_nft_listings(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftTransferLog,
+) {
+    use diesel::dsl::any;
+    use minterop_data::schema::nft_listings::dsl;
+    diesel::update(
+        nft_listings::table
+            .filter(dsl::nft_contract_id.eq(tx.receiver.to_string()))
+            .filter(dsl::token_id.eq(any(log.token_ids)))
+            .filter(dsl::accepted_at.is_null()),
+    )
+    .set(dsl::invalidated_at.eq(tx.timestamp))
+    .execute_db(&rt.pg_connection, &tx, "set splits")
+    .await
+}
+
+async fn invalidate_nft_offers(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftTransferLog,
+) {
+    use diesel::dsl::any;
+    use minterop_data::schema::nft_offers::dsl;
+    diesel::update(
+        nft_offers::table
+            .filter(dsl::nft_contract_id.eq(tx.receiver.to_string()))
+            .filter(dsl::token_id.eq(any(log.token_ids)))
+            .filter(dsl::accepted_at.is_null()),
+    )
+    .set(dsl::invalidated_at.eq(tx.timestamp))
+    .execute_db(&rt.pg_connection, &tx, "set splits")
+    .await
 }

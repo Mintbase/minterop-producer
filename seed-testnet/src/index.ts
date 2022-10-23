@@ -12,6 +12,8 @@ import { DEFAULT_STORE_CONTRACT } from "./constants";
 import { createSeries, mintParasToken } from "./paras";
 import { fetchCurrentBlockHeight } from "./rpc";
 import { EnvWriter } from "./utils/envWriter";
+import { auctionListOfferTake } from "./workflows/auctionListOfferTake";
+import { listThenTransferToInvalidate } from "./workflows/listThenTransferToInvalidate";
 import { parasListAndSale } from "./workflows/parasListAndSale";
 import { simpleBurn } from "./workflows/simpleBurn";
 import { simpleListAndSale } from "./workflows/simpleListAndSale";
@@ -41,8 +43,13 @@ async function main() {
 
   // begin by minting some tokens
   // NOTE: As more use cases are required, increment the number of tokens to mint
-  const [tokenToTransfer, tokenForSale, tokenToBurn] =
-    await mintTokensWithAccount(alice, 3);
+  const [
+    tokenToTransfer,
+    tokenForSale,
+    tokenToBurn,
+    tokenToListThenTransfer,
+    tokenToAuction,
+  ] = await mintTokensWithAccount(alice, 5);
 
   // workflows
 
@@ -60,29 +67,52 @@ async function main() {
     tokenForSale
   );
 
+  // list then transfer after to invalidate
+  const listThenTransferResult = await listThenTransferToInvalidate(
+    alice,
+    carol,
+    tokenToListThenTransfer
+  );
+
+  // auction listing
+  const auctionResult = await auctionListOfferTake(
+    alice,
+    bob,
+    carol,
+    tokenToAuction
+  );
+
   // simple burn of a token
   const tokenIds: string[] = [tokenToBurn];
   const burnResult = await simpleBurn(alice, tokenIds);
 
-  //paras interop
-  const parasSeries = await createSeries(alice);
-  //mint a paras token, then list and sell it on mintbase
+  // paras interop
+  // const parasSeries = await createSeries(alice);
+  // mint a paras token, then list and sell it on mintbase
   const parasToken = await mintParasToken(alice, bob);
-  const listAndPurchase = await parasListAndSale(bob, carol, parasToken[0]);
+  const listAndPurchaseParasResult = await parasListAndSale(
+    bob,
+    carol,
+    parasToken[0]
+  );
 
   const stopBlockHeight = await fetchCurrentBlockHeight();
 
-  //write to env
+  // write to env
   const envWriter = new EnvWriter("../.env");
   envWriter.setEnvValues({
     START_BLOCK_HEIGHT: startBlockHeight,
-    STOP_BLOCK_HEIGHT: stopBlockHeight + 5, //kinda hacky, addded 5 to block height to give some time to last transaction that wasnt getting processed in time
+    // kinda hacky, addded 5 to block height to give some time to last transaction that wasnt getting processed in time
+    STOP_BLOCK_HEIGHT: stopBlockHeight + 5,
   });
 
   return {
     transferResult,
     saleResult,
     burnResult,
+    listAndPurchaseParasResult,
+    listThenTransferResult,
+    auctionResult,
     startBlockHeight,
     stopBlockHeight,
   };
