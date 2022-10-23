@@ -34,8 +34,8 @@ export const auctionListOfferTake = async (
     "make_offer",
     {
       nft_contract_id: DEFAULT_STORE_CONTRACT,
-      token_key: `${tokenId}:${DEFAULT_STORE_CONTRACT}`,
-      price: nearToYocto("0.11"),
+      token_key: [`${tokenId}:${DEFAULT_STORE_CONTRACT}`],
+      price: [nearToYocto("0.11")],
       timeout: [{ Hours: 24 }],
     },
     MAX_GAS,
@@ -48,8 +48,8 @@ export const auctionListOfferTake = async (
     "make_offer",
     {
       nft_contract_id: DEFAULT_STORE_CONTRACT,
-      token_key: `${tokenId}:${DEFAULT_STORE_CONTRACT}`,
-      price: nearToYocto("0.123"),
+      token_key: [`${tokenId}:${DEFAULT_STORE_CONTRACT}`],
+      price: [nearToYocto("0.123")],
       timeout: [{ Hours: 24 }],
     },
     MAX_GAS,
