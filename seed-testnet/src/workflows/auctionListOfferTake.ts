@@ -39,7 +39,7 @@ export const auctionListOfferTake = async (
       timeout: [{ Hours: 24 }],
     },
     MAX_GAS,
-    nearToYocto("0.6")
+    nearToYocto("0.11")
   );
 
   const offerCall = await callContractMethod(
@@ -53,18 +53,18 @@ export const auctionListOfferTake = async (
       timeout: [{ Hours: 24 }],
     },
     MAX_GAS,
-    nearToYocto("0.6")
+    nearToYocto("0.123")
   );
 
   const takeCall = await callContractMethod(
-    buyer,
+    lister,
     AUCTION_MARKET_CONTRACT,
     "accept_and_transfer",
     {
       token_key: `${tokenId}:${DEFAULT_STORE_CONTRACT}`,
     },
     MAX_GAS,
-    nearToYocto("0.6")
+    "1"
   );
 
   return {
