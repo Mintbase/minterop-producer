@@ -58,7 +58,10 @@ pub(crate) async fn query_metadata_id(
         .get_results_async::<Option<String>>(db)
         .await
     {
-        Err(_) => None,
+        Err(e) => {
+            crate::error!("Failed to query metadata ID: {}", e);
+            None
+        }
         Ok(values) if !values.is_empty() => match values.get(0) {
             Some(Some(s)) => Some(s.to_string()),
             _ => None,
