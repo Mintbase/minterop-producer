@@ -126,7 +126,9 @@ async fn invalidate_nft_listings(
         nft_listings::table
             .filter(dsl::nft_contract_id.eq(tx.receiver.to_string()))
             .filter(dsl::token_id.eq(any(log.token_ids)))
-            .filter(dsl::accepted_at.is_null()),
+            .filter(dsl::accepted_at.is_null())
+            .filter(dsl::unlisted_at.is_null())
+            .filter(dsl::invalidated_at.is_null()),
     )
     .set(dsl::invalidated_at.eq(tx.timestamp))
     .execute_db(&rt.pg_connection, &tx, "set splits")
@@ -144,7 +146,10 @@ async fn invalidate_nft_offers(
         nft_offers::table
             .filter(dsl::nft_contract_id.eq(tx.receiver.to_string()))
             .filter(dsl::token_id.eq(any(log.token_ids)))
-            .filter(dsl::accepted_at.is_null()),
+            .filter(dsl::accepted_at.is_null())
+            .filter(dsl::withdrawn_at.is_null())
+            .filter(dsl::outbid_at.is_null())
+            .filter(dsl::invalidated_at.is_null()),
     )
     .set(dsl::invalidated_at.eq(tx.timestamp))
     .execute_db(&rt.pg_connection, &tx, "set splits")

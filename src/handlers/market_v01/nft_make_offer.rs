@@ -50,6 +50,7 @@ async fn insert_nft_offer(
             Some(triple) => triple,
         };
 
+    // FIXME: mark previous offers as outbid
     let offer = NftOffer {
         nft_contract_id: nft_contract.to_string(),
         token_id: token_id.to_string(),
@@ -65,6 +66,8 @@ async fn insert_nft_offer(
         referral_amount: None,
         withdrawn_at: None,
         accepted_at: None,
+        invalidated_at: None,
+        outbid_at: None,
         expires_at: Some(crate::nsecs_to_timestamp(log.offer.timeout)),
     };
 

@@ -53,6 +53,7 @@ async fn insert_nft_listing(
         unlisted_at: None,
         accepted_at: None,
         accepted_offer_id: None,
+        invalidated_at: None,
         metadata_id,
     };
 
