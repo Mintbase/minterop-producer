@@ -1553,7 +1553,7 @@ dependencies = [
 [[package]]
 name = "minterop-data"
 version = "0.1.0"
-source = "git+https://github.com/Mintbase/minterop-data?branch=add-invalidated-columns#8e407972e9538d171d39dda98594724dc9db1d13"
+source = "git+https://github.com/Mintbase/minterop-data?rev=666214447e74716a6a50a74c65b1906d7d88d519#666214447e74716a6a50a74c65b1906d7d88d519"
 dependencies = [
  "anyhow",
  "bigdecimal",
