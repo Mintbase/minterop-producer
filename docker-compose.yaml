@@ -38,8 +38,8 @@ services:
     image: quzhi65222714/gcp-pubsub-emulator
     ports:
       - "8085:8085"
-    logging:
-      driver: none
+    # logging:
+    #   driver: none
 
   event_dispatcher:
     image: gcr.io/omni-cloud-1/event-dispatcher:3fc122
