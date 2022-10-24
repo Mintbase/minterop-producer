@@ -25,8 +25,9 @@ async fn handle_nft_make_offer_log(
     tx: ReceiptData,
     log: NftMakeOfferLog,
 ) {
-    future::join(
+    future::join3(
         insert_nft_offer(rt.clone(), tx.clone(), log.clone()),
+        invalidate_nft_offers(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
     )
     .await;
@@ -74,7 +75,42 @@ async fn insert_nft_offer(
     diesel::insert_into(nft_offers::table)
         .values(offer)
         .execute_db(&rt.pg_connection, &tx, "insert listing")
-        .await
+        .await;
+}
+
+async fn invalidate_nft_offers(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftMakeOfferLog,
+) {
+    use minterop_data::schema::nft_offers::dsl;
+    let (nft_contract, token_id, approval_id) =
+        match super::parse_list_id(&log.list_id) {
+            None => {
+                crate::error!(
+                    "Unparseable list ID: {}, ({:?})",
+                    log.list_id,
+                    tx
+                );
+                return;
+            }
+            Some(triple) => triple,
+        };
+
+    diesel::update(
+        nft_offers::table
+            .filter(dsl::nft_contract_id.eq(nft_contract.to_string()))
+            .filter(dsl::token_id.eq(token_id.to_string()))
+            .filter(dsl::market_id.eq(tx.receiver.to_string()))
+            .filter(dsl::approval_id.eq(pg_numeric(approval_id)))
+            .filter(dsl::accepted_at.is_null())
+            .filter(dsl::withdrawn_at.is_null())
+            .filter(dsl::outbid_at.is_null())
+            .filter(dsl::invalidated_at.is_null()),
+    )
+    .set(dsl::invalidated_at.eq(tx.timestamp))
+    .execute_db(&rt.pg_connection, &tx, "invalidate_offer")
+    .await
 }
 
 async fn insert_nft_activities(

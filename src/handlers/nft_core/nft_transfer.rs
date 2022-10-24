@@ -131,7 +131,7 @@ async fn invalidate_nft_listings(
             .filter(dsl::invalidated_at.is_null()),
     )
     .set(dsl::invalidated_at.eq(tx.timestamp))
-    .execute_db(&rt.pg_connection, &tx, "set splits")
+    .execute_db(&rt.pg_connection, &tx, "invalidate listing")
     .await
 }
 
@@ -152,6 +152,6 @@ async fn invalidate_nft_offers(
             .filter(dsl::invalidated_at.is_null()),
     )
     .set(dsl::invalidated_at.eq(tx.timestamp))
-    .execute_db(&rt.pg_connection, &tx, "set splits")
+    .execute_db(&rt.pg_connection, &tx, "invalidate offer")
     .await
 }
