@@ -15,7 +15,7 @@ jobs:
       - name: Rust setup
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly # TODO: back to stable once fmt features are stable
+          toolchain: nightly-2022-10-01 # TODO: back to stable once fmt features are stable
           default: true
           override: true
           components: rustfmt, clippy
@@ -36,7 +36,7 @@ jobs:
 
       - name: Formatting
         run: |
-          cargo +nightly fmt -- --check
+          cargo +nightly-2022-10-01 fmt -- --check
           shfmt -i 2 -d .
           taplo fmt **/*.toml --check
           prettier . --check

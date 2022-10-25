@@ -11,8 +11,6 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       retries: 3
       interval: 5s
-    # turn off logging for postgress,
-    # sometimes get mingled with app logs
 
   indexer:
     depends_on:
@@ -40,8 +38,8 @@ services:
     image: quzhi65222714/gcp-pubsub-emulator
     ports:
       - "8085:8085"
-    logging:
-      driver: none
+    # logging:
+    #   driver: none
 
   event_dispatcher:
     image: gcr.io/omni-cloud-1/event-dispatcher:3fc122

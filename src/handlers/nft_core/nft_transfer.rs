@@ -34,9 +34,19 @@ async fn handle_nft_transfer_log(
     log: NftTransferLog,
 ) {
     // TODO: join in RPC call? -> would require `on_conflict`
-    future::join(
+    future::join4(
         insert_nft_tokens(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
+        super::invalidate_nft_listings(
+            rt.clone(),
+            tx.clone(),
+            log.token_ids.clone(),
+        ),
+        super::invalidate_nft_offers(
+            rt.clone(),
+            tx.clone(),
+            log.token_ids.clone(),
+        ),
     )
     .await;
 

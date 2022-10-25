@@ -44,6 +44,8 @@ async fn insert_nft_offer(
             .map(|balance| balance.0.to_string()),
         withdrawn_at: None,
         accepted_at: None,
+        invalidated_at: None,
+        outbid_at: None,
         expires_at: None,
     };
 
