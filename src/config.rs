@@ -16,6 +16,7 @@ pub struct Config {
     rust_log: Option<String>,
     rpc_url: String,
     mintbase_root: String,
+    db_pool_size: Option<u32>,
 }
 
 impl Config {
@@ -29,7 +30,10 @@ impl Config {
         let minterop_rpc = MinteropRpcConnector::new(&self.rpc_url)?;
         Ok(MintlakeRuntime {
             stop_block_height: self.stop_block_height,
-            pg_connection: crate::database::init_db_connection(&self.postgres),
+            pg_connection: crate::database::init_db_connection(
+                &self.postgres,
+                self.db_pool_size,
+            ),
             minterop_rpc,
             mintbase_root: self.mintbase_root.clone(),
         })

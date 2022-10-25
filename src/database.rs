@@ -1,11 +1,16 @@
+const DEFAULT_DB_POOL_SIZE: u32 = 50;
+
 // ------------------------------ actix_diesel ------------------------------ //
 pub(crate) type DbConnPool = actix_diesel::Database<diesel::PgConnection>;
 
 // timeouts and lifetimes?
 // https://docs.rs/actix-diesel/0.3.0/actix_diesel/struct.Builder.html
-pub(crate) fn init_db_connection(pg_string: &str) -> DbConnPool {
+pub(crate) fn init_db_connection(
+    pg_string: &str,
+    db_pool_size: Option<u32>,
+) -> DbConnPool {
     actix_diesel::Database::builder()
-        .pool_max_size(20)
+        .pool_max_size(db_pool_size.unwrap_or(DEFAULT_DB_POOL_SIZE))
         .open(pg_string)
 }
 
