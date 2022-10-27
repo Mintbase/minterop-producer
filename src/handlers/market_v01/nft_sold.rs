@@ -108,7 +108,7 @@ async fn insert_nft_earnings(
             Some(triple) => triple,
         };
 
-    let values = data
+    let mut values = data
         .payout
         .drain()
         .map(|(receiver_id, amount)| NftEarning {
@@ -123,8 +123,26 @@ async fn insert_nft_earnings(
             receiver_id: receiver_id.to_string(),
             amount: pg_numeric(amount.0),
             is_referral: false,
+            is_mintbase_cut: false,
         })
         .collect::<Vec<_>>();
+
+    if let Some(mb_amount) = data.mintbase_amount {
+        values.push(NftEarning {
+            token_id: token_id.to_string(),
+            nft_contract_id: nft_contract.to_string(),
+            market_id: tx.receiver.to_string(),
+            approval_id: pg_numeric(approval_id),
+            offer_id: data.offer_num as i64,
+            receipt_id: tx.id.clone(),
+            timestamp: tx.timestamp,
+            currency: "near".to_string(),
+            receiver_id: tx.receiver.to_string(),
+            amount: pg_numeric(mb_amount.0),
+            is_referral: false,
+            is_mintbase_cut: true,
+        });
+    }
 
     diesel::insert_into(nft_earnings::table)
         .values(values)

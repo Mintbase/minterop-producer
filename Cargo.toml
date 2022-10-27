@@ -65,11 +65,11 @@ features = ["ser", "de"]
 
 [dependencies.mb-sdk]
 git = "https://github.com/Mintbase/mb-sdk.git"
-rev = "ca842890da8b4bfb20cdf39ede5fbaaf4a78eb11"
+rev = "2124c96634c4739864790e605022e68cba0fbb1d"
 features = ["all"]
 
 [dependencies.minterop-data]
 git = "https://github.com/Mintbase/minterop-data"
-rev = "7b27b099f0d9bba7a9da1e9e0b5f48ffda366008"
+rev = "9fcf8a49474e36e02b3ee3caeaf2e2e0a5a032c7"
 
 [features]
