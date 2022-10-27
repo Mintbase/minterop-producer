@@ -41,7 +41,7 @@ async fn insert_nft_offer(
         referrer_id: data.referrer_id.map(|account| account.to_string()),
         referral_amount: data
             .referral_amount
-            .map(|balance| balance.0.to_string()),
+            .map(|balance| pg_numeric(balance.0)),
         withdrawn_at: None,
         accepted_at: None,
         invalidated_at: None,

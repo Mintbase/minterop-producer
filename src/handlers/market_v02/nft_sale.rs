@@ -66,6 +66,7 @@ async fn update_nft_offers(
     .await
 }
 
+// FIXME:
 async fn insert_nft_earnings(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
@@ -86,6 +87,7 @@ async fn insert_nft_earnings(
             receiver_id: receiver_id.to_string(),
             amount: pg_numeric(amount.0),
             is_referral: false,
+            is_mintbase_cut: false,
         })
         .collect::<Vec<_>>();
 
@@ -102,6 +104,24 @@ async fn insert_nft_earnings(
             receiver_id: referrer_id.into(),
             amount: pg_numeric(data.referral_amount.unwrap().0),
             is_referral: true,
+            is_mintbase_cut: false,
+        });
+    }
+
+    if let Some(mb_earning) = data.mintbase_amount {
+        values.push(NftEarning {
+            token_id: data.nft_token_id.clone(),
+            nft_contract_id: data.nft_contract_id.to_string(),
+            market_id: tx.receiver.to_string(),
+            approval_id: pg_numeric(data.nft_approval_id),
+            offer_id: data.accepted_offer_id as i64,
+            receipt_id: tx.id.clone(),
+            timestamp: tx.timestamp,
+            currency: data.currency.clone(),
+            receiver_id: tx.receiver.to_string(),
+            amount: pg_numeric(mb_earning.0),
+            is_referral: false,
+            is_mintbase_cut: true,
         });
     }
 

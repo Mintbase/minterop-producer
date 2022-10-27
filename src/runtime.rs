@@ -198,7 +198,9 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
         ("mb_market", "0.2.1", "nft_unlist") => {
             market_v02::handle_nft_unlist(rt, &tx, data).await
         }
-        ("mb_market", "0.2.1", "nft_sale") => {
+        // 0.2.2 extends 0.2.1 by optional field -> backwards compatible
+        ("mb_market", "0.2.1", "nft_sale")
+        | ("mb_market", "0.2.2", "nft_sale") => {
             market_v02::handle_nft_sold(rt, &tx, data).await
         }
         ("mb_market", "0.2.1", "nft_make_offer") => {
