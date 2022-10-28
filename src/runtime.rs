@@ -139,7 +139,7 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
                 crate::error!("Got malformed event log: {} ({:?})", log, tx);
                 return;
             }
-            Some(triple) => triple,
+            Some(event) => sanitize_event(event),
         };
 
     match (standard.as_str(), version.as_str(), event.as_str()) {
@@ -286,4 +286,14 @@ async fn update_db_blockheight(db: &DbConnPool, height: u64) {
                 e
             )
         });
+}
+
+fn sanitize_event(
+    event: (String, String, String, serde_json::Value),
+) -> (String, String, String, serde_json::Value) {
+    let (nep, version, event, data) = event;
+
+    let version = version.trim_start_matches("nft-").to_string();
+
+    return (nep, version, event, data);
 }
