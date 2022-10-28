@@ -295,5 +295,5 @@ fn sanitize_event(
 
     let version = version.trim_start_matches("nft-").to_string();
 
-    return (nep, version, event, data);
+    (nep, version, event, data)
 }
