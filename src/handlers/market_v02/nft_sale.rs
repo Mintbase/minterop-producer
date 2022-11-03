@@ -15,11 +15,19 @@ pub(crate) async fn handle_nft_sold(
         Ok(data) => data,
     };
 
-    future::join4(
-        update_nft_listings(rt.clone(), tx.clone(), data.clone()),
-        update_nft_offers(rt.clone(), tx.clone(), data.clone()),
-        insert_nft_earnings(rt.clone(), tx.clone(), data.clone()),
-        insert_nft_activities(rt.clone(), tx.clone(), data.clone()),
+    // cannot use future::join_all, because it doesn't allow me to generate the
+    // array/vector without boxing futures
+    future::join(
+        future::join3(
+            update_nft_listings(rt.clone(), tx.clone(), data.clone()),
+            update_nft_offers(rt.clone(), tx.clone(), data.clone()),
+            insert_nft_earnings(rt.clone(), tx.clone(), data.clone()),
+        ),
+        future::join3(
+            insert_nft_activities(rt.clone(), tx.clone(), data.clone()),
+            remove_listing_invalidation(rt.clone(), tx.clone(), data.clone()),
+            remove_offer_invalidation(rt.clone(), tx.clone(), data.clone()),
+        ),
     )
     .await;
 }
@@ -154,4 +162,47 @@ async fn insert_nft_activities(
         .values(activity)
         .execute_db(&rt.pg_connection, &tx, "insert activity on sale")
         .await
+}
+
+async fn remove_listing_invalidation(
+    rt: crate::runtime::TxProcessingRuntime,
+    tx: crate::ReceiptData,
+    data: NftSaleData,
+) {
+    use minterop_data::schema::nft_listings::dsl;
+
+    use crate::handlers::prelude::*;
+
+    diesel::update(
+        nft_listings::table
+            .filter(dsl::nft_contract_id.eq(data.nft_contract_id.to_string()))
+            .filter(dsl::token_id.eq(data.nft_token_id))
+            .filter(dsl::approval_id.eq(pg_numeric(data.nft_approval_id)))
+            .filter(dsl::market_id.eq(tx.receiver.to_string())),
+    )
+    .set(dsl::invalidated_at.eq(Option::<chrono::NaiveDateTime>::None))
+    .execute_db(&rt.pg_connection, &tx, "revalidate listing")
+    .await
+}
+
+async fn remove_offer_invalidation(
+    rt: crate::runtime::TxProcessingRuntime,
+    tx: crate::ReceiptData,
+    data: NftSaleData,
+) {
+    use minterop_data::schema::nft_offers::dsl;
+
+    use crate::handlers::prelude::*;
+
+    diesel::update(
+        nft_offers::table
+            .filter(dsl::nft_contract_id.eq(data.nft_contract_id.to_string()))
+            .filter(dsl::token_id.eq(data.nft_token_id))
+            .filter(dsl::approval_id.eq(pg_numeric(data.nft_approval_id)))
+            .filter(dsl::market_id.eq(tx.receiver.to_string()))
+            .filter(dsl::offer_id.eq(data.accepted_offer_id as i64)),
+    )
+    .set(dsl::invalidated_at.eq(Option::<chrono::NaiveDateTime>::None))
+    .execute_db(&rt.pg_connection, &tx, "revalidate offer")
+    .await
 }
