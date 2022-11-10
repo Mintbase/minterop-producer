@@ -124,6 +124,31 @@ fn indexes_listings() {
 }
 
 #[test]
+fn indexes_offers() {
+    use minterop_data::schema::nft_offers::dsl::*;
+
+    let conn = establish_connection();
+    let offer_contracts = nft_offers
+        .select(nft_contract_id)
+        .distinct()
+        .get_results::<String>(&conn)
+        .unwrap();
+    assert!(offer_contracts.contains(&PARAS_TOKEN_CONTRACT.to_string()));
+    assert!(offer_contracts.contains(&MB_STORE_CONTRACT.to_string()));
+
+    // FIXME: should select outbid_at, but requires indexer changes for that
+    let outbid = nft_offers
+        .select(withdrawn_at)
+        .get_results::<Option<chrono::NaiveDateTime>>(&conn)
+        .unwrap()
+        .into_iter()
+        .filter(|x| x.is_some())
+        .collect::<Vec<_>>();
+    println!("{:?}", outbid);
+    assert!(outbid.len() >= 1);
+}
+
+#[test]
 fn indexes_metadata() {
     use minterop_data::schema::nft_metadata::dsl::*;
     let conn = establish_connection();
