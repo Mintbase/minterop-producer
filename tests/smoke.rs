@@ -132,8 +132,7 @@ fn indexes_metadata() {
         .distinct()
         .get_results::<String>(&conn)
         .unwrap();
-    // FIXME: find out why this fails and reactivate
-    // assert!(metadata_contracts.contains(&PARAS_TOKEN_CONTRACT.to_string()));
+    assert!(metadata_contracts.contains(&PARAS_TOKEN_CONTRACT.to_string()));
     assert!(metadata_contracts.contains(&MB_STORE_CONTRACT.to_string()));
 }
 
