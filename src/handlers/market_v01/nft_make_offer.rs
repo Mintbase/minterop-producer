@@ -27,7 +27,7 @@ async fn handle_nft_make_offer_log(
 ) {
     future::join3(
         insert_nft_offer(rt.clone(), tx.clone(), log.clone()),
-        invalidate_nft_offers(rt.clone(), tx.clone(), log.clone()),
+        outbid_nft_offers(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
     )
     .await;
@@ -51,7 +51,6 @@ async fn insert_nft_offer(
             Some(triple) => triple,
         };
 
-    // FIXME: mark previous offers as outbid
     let offer = NftOffer {
         nft_contract_id: nft_contract.to_string(),
         token_id: token_id.to_string(),
@@ -78,7 +77,7 @@ async fn insert_nft_offer(
         .await;
 }
 
-async fn invalidate_nft_offers(
+async fn outbid_nft_offers(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
     log: NftMakeOfferLog,
@@ -108,7 +107,7 @@ async fn invalidate_nft_offers(
             .filter(dsl::outbid_at.is_null())
             .filter(dsl::invalidated_at.is_null()),
     )
-    .set(dsl::invalidated_at.eq(tx.timestamp))
+    .set(dsl::outbid_at.eq(tx.timestamp))
     .execute_db(&rt.pg_connection, &tx, "invalidate_offer")
     .await
 }
