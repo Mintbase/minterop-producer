@@ -144,6 +144,58 @@ async fn insert_nft_activities(
     tx: ReceiptData,
     data: NftSaleData,
 ) {
+    use actix_diesel::dsl::AsyncRunQueryDsl;
+    use diesel::ExpressionMethods;
+    use minterop_data::schema::{
+        nft_listings::{
+            self,
+            dsl as listings_dsl,
+        },
+        nft_offers::{
+            self,
+            dsl as offers_dsl,
+        },
+    };
+
+    let seller = match nft_listings::table
+        .filter(
+            listings_dsl::nft_contract_id.eq(data.nft_contract_id.to_string()),
+        )
+        .filter(listings_dsl::token_id.eq(data.nft_token_id.clone()))
+        .filter(listings_dsl::market_id.eq(tx.receiver.to_string()))
+        .filter(listings_dsl::approval_id.eq(pg_numeric(data.nft_approval_id)))
+        .select(listings_dsl::listed_by)
+        .limit(1)
+        .get_result_async::<String>(&rt.pg_connection)
+        .await
+    {
+        Err(e) => {
+            crate::error!("Failed to get token seller {} ({:?})", e, tx);
+            None
+        }
+        Ok(seller) => Some(seller),
+    };
+
+    let buyer = match nft_offers::table
+        .filter(
+            offers_dsl::nft_contract_id.eq(data.nft_contract_id.to_string()),
+        )
+        .filter(offers_dsl::token_id.eq(data.nft_token_id.clone()))
+        .filter(offers_dsl::market_id.eq(tx.receiver.to_string()))
+        .filter(offers_dsl::approval_id.eq(pg_numeric(data.nft_approval_id)))
+        .filter(offers_dsl::offer_id.eq(data.accepted_offer_id as i64))
+        .select(offers_dsl::offered_by)
+        .limit(1)
+        .get_result_async::<String>(&rt.pg_connection)
+        .await
+    {
+        Err(e) => {
+            crate::error!("Failed to get token buyer {} ({:?})", e, tx);
+            None
+        }
+        Ok(buyer) => Some(buyer),
+    };
+
     let activity = NftActivity {
         receipt_id: tx.id.clone(),
         tx_sender: tx.sender.to_string(),
@@ -152,8 +204,8 @@ async fn insert_nft_activities(
         nft_contract_id: data.nft_contract_id.to_string(),
         token_id: data.nft_token_id.to_string(),
         kind: NFT_ACTIVITY_KIND_SOLD.to_string(),
-        action_sender: None,
-        action_receiver: None,
+        action_sender: buyer,
+        action_receiver: seller,
         memo: None,
         price: Some(pg_numeric(data.price.0)),
     };

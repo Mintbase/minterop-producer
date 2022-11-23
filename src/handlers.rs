@@ -1,7 +1,7 @@
 mod prelude {
     pub use diesel::{
-        query_dsl::filter_dsl::FilterDsl,
         ExpressionMethods,
+        QueryDsl,
     };
     pub use futures::future;
     pub use minterop_data::{
