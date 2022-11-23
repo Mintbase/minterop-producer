@@ -37,15 +37,19 @@ async fn handle_nft_transfer_log(
     future::join4(
         insert_nft_tokens(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
-        super::invalidate_nft_listings(
+        crate::handlers::invalidate_nft_listings(
             rt.clone(),
             tx.clone(),
+            tx.receiver.to_string(),
             log.token_ids.clone(),
+            None,
         ),
-        super::invalidate_nft_offers(
+        crate::handlers::invalidate_nft_offers(
             rt.clone(),
             tx.clone(),
+            tx.receiver.to_string(),
             log.token_ids.clone(),
+            None,
         ),
     )
     .await;

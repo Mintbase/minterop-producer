@@ -27,9 +27,23 @@ async fn handle_nft_list_log(
     tx: ReceiptData,
     log: NftListLog,
 ) {
-    future::join(
+    future::join4(
         insert_nft_listing(rt.clone(), tx.clone(), log.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), log.clone()),
+        crate::handlers::invalidate_nft_listings(
+            rt.clone(),
+            tx.clone(),
+            log.store_id.clone(),
+            vec![log.token_id.to_string()],
+            Some(tx.receiver.to_string()),
+        ),
+        crate::handlers::invalidate_nft_offers(
+            rt.clone(),
+            tx.clone(),
+            log.store_id.to_string(),
+            vec![log.token_id.to_string()],
+            Some(tx.receiver.to_string()),
+        ),
     )
     .await;
 }
