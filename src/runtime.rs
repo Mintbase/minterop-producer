@@ -19,21 +19,38 @@ pub struct MintlakeRuntime {
     pub(crate) pg_connection: DbConnPool,
     pub(crate) minterop_rpc: MinteropRpcConnector,
     pub(crate) mintbase_root: String,
+    pub(crate) contract_filter: Option<Vec<String>>,
 }
 
 impl MintlakeRuntime {
     /// Listen to a stream of blocks, and process all the contained data.
     pub async fn handle_stream(&self, stream: LakeStreamer) {
-        match self.stop_block_height {
-            Some(0) => self.handle_stream_unbounded(stream).await,
-            Some(h) => self.handle_stream_bounded(stream, h).await,
-            None => self.handle_stream_unbounded(stream).await,
+        match (self.stop_block_height, self.contract_filter.clone()) {
+            (Some(0), None) => {
+                self.handle_stream_unbounded_unfiltered(stream).await
+            }
+            (Some(h), None) => {
+                self.handle_stream_bounded_unfiltered(stream, h).await
+            }
+            (None, None) => {
+                self.handle_stream_unbounded_unfiltered(stream).await
+            }
+            (Some(0), Some(filter)) => {
+                self.handle_stream_unbounded_filtered(stream, &filter).await
+            }
+            (Some(h), Some(filter)) => {
+                self.handle_stream_bounded_filtered(stream, h, &filter)
+                    .await
+            }
+            (None, Some(filter)) => {
+                self.handle_stream_unbounded_filtered(stream, &filter).await
+            }
         }
     }
 
     /// Handles the stream of blocks until a specified height and then exits.
     /// Intended for replaying transactions.
-    async fn handle_stream_bounded(
+    async fn handle_stream_bounded_unfiltered(
         &self,
         mut stream: LakeStreamer,
         stop_height: u64,
@@ -43,7 +60,7 @@ impl MintlakeRuntime {
         #[allow(unused_assignments)]
         let mut height = 0;
         while let Some(msg) = stream.recv().await {
-            height = self.handle_msg(msg).await;
+            height = self.handle_msg_unfiltered(msg).await;
             if height > stop_height {
                 crate::info!(
                     "Finished running indexer to height, {}",
@@ -55,18 +72,58 @@ impl MintlakeRuntime {
     }
 
     /// Handles the stream of blocks up to infinity
-    async fn handle_stream_unbounded(&self, mut stream: LakeStreamer) {
+    async fn handle_stream_unbounded_unfiltered(
+        &self,
+        mut stream: LakeStreamer,
+    ) {
         crate::info!("Running unbouned indexer");
 
         while let Some(msg) = stream.recv().await {
-            self.handle_msg(msg).await;
+            self.handle_msg_unfiltered(msg).await;
+        }
+    }
+
+    /// Handles the stream of blocks until a specified height and then exits.
+    /// Intended for replaying transactions.
+    async fn handle_stream_bounded_filtered(
+        &self,
+        mut stream: LakeStreamer,
+        stop_height: u64,
+        filter: &[String],
+    ) {
+        crate::info!("Running bounded indexer to height {}", stop_height);
+
+        #[allow(unused_assignments)]
+        let mut height = 0;
+        while let Some(msg) = stream.recv().await {
+            height = self.handle_msg_filtered(msg, filter).await;
+            if height > stop_height {
+                crate::info!(
+                    "Finished running indexer to height, {}",
+                    stop_height
+                );
+                return;
+            }
+        }
+    }
+
+    /// Handles the stream of blocks up to infinity
+    async fn handle_stream_unbounded_filtered(
+        &self,
+        mut stream: LakeStreamer,
+        filter: &[String],
+    ) {
+        crate::info!("Running unbouned indexer");
+
+        while let Some(msg) = stream.recv().await {
+            self.handle_msg_filtered(msg, filter).await;
         }
     }
 
     /// Handles a streamer message (which is mostly synonymous to a block) by
     /// getting all transactions, filtering for only those that are successful
     /// and have logs, and then spawn tasks that process them asynchronously.
-    async fn handle_msg(&self, msg: StreamerMessage) -> u64 {
+    async fn handle_msg_unfiltered(&self, msg: StreamerMessage) -> u64 {
         let height = msg.block.header.height;
 
         if height % 10 == 0 {
@@ -80,6 +137,56 @@ impl MintlakeRuntime {
             .filter(|shard| shard.chunk.is_some())
             .flat_map(|shard| shard.receipt_execution_outcomes)
             .filter_map(|tx| filter_and_split_receipt(&msg.block.header, tx))
+            .map(|(tx, logs)| {
+                // This clone internally clones an Arc, and thus doesn't
+                // establish a new connection on every transaction. That's what
+                // we want here
+                let rt = self.tx_processing_runtime();
+                actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
+            })
+            .collect::<Vec<_>>();
+
+        // make sure that everything processed fine
+        for handle in handles {
+            handle.await.handle_err(|e| {
+                crate::error!(
+                    "Could not join async handle at block height {}: {:?}",
+                    height,
+                    e
+                )
+            });
+        }
+
+        update_db_blockheight(&self.pg_connection, height).await;
+        height
+    }
+
+    /// The same as `handle_msg_unfiltered, but applies `
+    async fn handle_msg_filtered(
+        &self,
+        msg: StreamerMessage,
+        filter: &[String],
+    ) -> u64 {
+        let height = msg.block.header.height;
+
+        if height % 10 == 0 {
+            crate::info!("Processing block {}", height);
+        }
+
+        // async execution of all transactions in a block
+        let handles = msg
+            .shards
+            .into_iter()
+            .filter(|shard| shard.chunk.is_some())
+            .flat_map(|shard| shard.receipt_execution_outcomes)
+            .filter_map(|tx| filter_and_split_receipt(&msg.block.header, tx))
+            .filter_map(|(tx, logs)| {
+                if filter.contains(&tx.receiver.to_string()) {
+                    Some((tx, logs))
+                } else {
+                    None
+                }
+            })
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
                 // establish a new connection on every transaction. That's what
