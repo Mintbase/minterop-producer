@@ -17,6 +17,7 @@ pub struct Config {
     rpc_url: String,
     mintbase_root: String,
     db_pool_size: Option<u32>,
+    contract_filter: Option<String>,
 }
 
 impl Config {
@@ -36,6 +37,10 @@ impl Config {
             ),
             minterop_rpc,
             mintbase_root: self.mintbase_root.clone(),
+            contract_filter: self
+                .contract_filter
+                .clone()
+                .map(|s| s.split(',').map(|c| c.to_string()).collect()),
         })
     }
 
