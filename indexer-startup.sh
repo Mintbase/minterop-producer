@@ -24,7 +24,7 @@ COMMIT_HASH=$(cat meta.json | jq '.attributes.COMMIT_HASH' | tr -d '"')
 # Pull docker image
 sudo gcloud auth configure-docker --quiet
 sudo docker login gcr.io
-sudo docker pull gcr.io/omni-cloud-1/minterop-indexer:$COMMIT_HASH
+sudo docker pull gcr.io/omni-cloud-1/minterop-producer:$COMMIT_HASH
 
 # Setup AWS creds (secret)
 mkdir .aws
