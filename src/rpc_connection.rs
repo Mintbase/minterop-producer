@@ -28,9 +28,6 @@ impl MinteropRpcConnector {
     }
 
     pub async fn contract(&self, contract_id: AccountId) {
-        // FIXME: using https leads to "record overflow"
-        // FIXME: sometimes I need the slash, sometimes not?!
-
         let req = post_json(
             &self.endpoint.to_string(),
             &RpcMessage::from_contract(contract_id.to_string()),
@@ -47,7 +44,6 @@ impl MinteropRpcConnector {
                 contract_id
             )
         }
-        // TODO: check response for status code (later)
     }
 
     pub async fn token(
@@ -57,8 +53,6 @@ impl MinteropRpcConnector {
         minter: Option<String>,
     ) {
         let req = post_json(
-            // FIXME: using https leads to "record overflow"
-            // FIXME: sometimes I need the slash, sometimes not?!
             &self.endpoint.to_string(),
             &RpcMessage::from_token(
                 contract_id.to_string(),
@@ -79,7 +73,38 @@ impl MinteropRpcConnector {
                 token_ids
             )
         }
-        // TODO: check response for status code (later)
+    }
+
+    pub async fn sale(
+        &self,
+        contract_id: String,
+        token_id: String,
+        new_owner_id: String,
+        receipt_id: String,
+    ) {
+        let req = post_json(
+            &self.endpoint.to_string(),
+            &RpcMessage::from_sale(
+                contract_id.clone(),
+                token_id.clone(),
+                new_owner_id.clone(),
+                receipt_id,
+            ),
+        );
+
+        crate::debug!("req: {:?}", req);
+        let res = self.client.request(req).await;
+        crate::debug!("res: {:?}", res);
+
+        if let Err(e) = res {
+            crate::error!(
+                "Failed to dispatch sale event: {} ({}::{} -> {})",
+                e,
+                contract_id,
+                token_id,
+                new_owner_id
+            )
+        }
     }
 }
 

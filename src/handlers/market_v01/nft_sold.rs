@@ -17,7 +17,7 @@ pub(crate) async fn handle_nft_sold(
 
     // cannot use future::join_all, because it doesn't allow me to generate the
     // array/vector without boxing futures
-    future::join(
+    future::join3(
         future::join3(
             update_nft_listings(rt.clone(), tx.clone(), data.clone()),
             update_nft_offers(rt.clone(), tx.clone(), data.clone()),
@@ -28,6 +28,7 @@ pub(crate) async fn handle_nft_sold(
             remove_listing_invalidation(rt.clone(), tx.clone(), data.clone()),
             remove_offer_invalidation(rt.clone(), tx.clone(), data.clone()),
         ),
+        dispatch_sale_event(rt.clone(), tx.clone(), data.clone()),
     )
     .await;
 }
@@ -262,4 +263,28 @@ async fn remove_offer_invalidation(
     .set(dsl::invalidated_at.eq(Option::<chrono::NaiveDateTime>::None))
     .execute_db(&rt.pg_connection, &tx, "revalidate offer")
     .await
+}
+
+async fn dispatch_sale_event(
+    rt: crate::runtime::TxProcessingRuntime,
+    tx: crate::ReceiptData,
+    data: NftSaleData,
+) {
+    let (nft_contract, token_id, _) = match super::parse_list_id(&data.list_id)
+    {
+        None => {
+            crate::error!("Unparseable list ID: {}, ({:?})", data.list_id, tx);
+            return;
+        }
+        Some(triple) => triple,
+    };
+
+    rt.minterop_rpc
+        .sale(
+            nft_contract.to_string(),
+            token_id.to_string(),
+            tx.sender.to_string(),
+            tx.id,
+        )
+        .await;
 }
