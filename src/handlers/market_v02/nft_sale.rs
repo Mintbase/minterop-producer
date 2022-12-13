@@ -75,7 +75,6 @@ async fn update_nft_offers(
     .await
 }
 
-// FIXME:
 async fn insert_nft_earnings(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
@@ -265,12 +264,23 @@ async fn dispatch_sale_event(
     tx: crate::ReceiptData,
     data: NftSaleData,
 ) {
-    rt.minterop_rpc
-        .sale(
-            data.nft_contract_id.to_string(),
-            data.nft_token_id,
-            tx.sender.to_string(),
-            tx.id,
-        )
-        .await;
+    if let Some(offer) = crate::database::query_offer(
+        data.nft_contract_id.to_string(),
+        data.nft_token_id.clone(),
+        tx.receiver.to_string(),
+        data.nft_approval_id,
+        data.accepted_offer_id,
+        &rt.pg_connection,
+    )
+    .await
+    {
+        rt.minterop_rpc
+            .sale(
+                data.nft_contract_id.to_string(),
+                data.nft_token_id,
+                offer.offered_by,
+                tx.id,
+            )
+            .await;
+    }
 }

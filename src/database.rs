@@ -1,3 +1,5 @@
+use minterop_data::db_rows::NftOffer;
+
 const DEFAULT_DB_POOL_SIZE: u32 = 50;
 
 // ------------------------------ actix_diesel ------------------------------ //
@@ -72,5 +74,41 @@ pub(crate) async fn query_metadata_id(
             _ => None,
         },
         Ok(_) => None,
+    }
+}
+
+pub(crate) async fn query_offer(
+    nft_contract_id: String,
+    token_id: String,
+    market_id: String,
+    approval_id: u64,
+    offer_id: u64,
+    db: &DbConnPool,
+) -> Option<NftOffer> {
+    use actix_diesel::dsl::AsyncRunQueryDsl;
+    use diesel::{
+        ExpressionMethods,
+        QueryDsl,
+    };
+    use minterop_data::{
+        pg_numeric,
+        schema::nft_offers::dsl,
+    };
+
+    match dsl::nft_offers
+        .filter(dsl::nft_contract_id.eq(nft_contract_id))
+        .filter(dsl::token_id.eq(token_id))
+        .filter(dsl::market_id.eq(market_id))
+        .filter(dsl::approval_id.eq(pg_numeric(approval_id)))
+        .filter(dsl::offer_id.eq(offer_id as i64))
+        .limit(1)
+        .get_result_async::<NftOffer>(db)
+        .await
+    {
+        Err(e) => {
+            crate::error!("Failed to query offer: {}", e);
+            None
+        }
+        Ok(offer) => Some(offer),
     }
 }

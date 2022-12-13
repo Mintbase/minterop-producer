@@ -8,6 +8,7 @@
 scripts/run-gcr.sh
 scripts/populate-frontend-db.sh
 scripts/redo-db-migrations.sh
+scripts/deploy-indexer-tmp.sh
 .github/workflows/testnet.yaml
 sa-keyfile.json
 tmp.txt
