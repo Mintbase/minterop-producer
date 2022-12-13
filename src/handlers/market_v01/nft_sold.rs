@@ -270,21 +270,36 @@ async fn dispatch_sale_event(
     tx: crate::ReceiptData,
     data: NftSaleData,
 ) {
-    let (nft_contract, token_id, _) = match super::parse_list_id(&data.list_id)
-    {
-        None => {
-            crate::error!("Unparseable list ID: {}, ({:?})", data.list_id, tx);
-            return;
-        }
-        Some(triple) => triple,
-    };
+    let (nft_contract_id, token_id, approval_id) =
+        match super::parse_list_id(&data.list_id) {
+            None => {
+                crate::error!(
+                    "Unparseable list ID: {}, ({:?})",
+                    data.list_id,
+                    tx
+                );
+                return;
+            }
+            Some(triple) => triple,
+        };
 
-    rt.minterop_rpc
-        .sale(
-            nft_contract.to_string(),
-            token_id.to_string(),
-            tx.sender.to_string(),
-            tx.id,
-        )
-        .await;
+    if let Some(offer) = crate::database::query_offer(
+        nft_contract_id.to_string(),
+        token_id.to_string(),
+        tx.receiver.to_string(),
+        approval_id,
+        data.offer_num,
+        &rt.pg_connection,
+    )
+    .await
+    {
+        rt.minterop_rpc
+            .sale(
+                nft_contract_id.to_string(),
+                token_id.to_string(),
+                offer.offered_by,
+                tx.id,
+            )
+            .await;
+    }
 }
