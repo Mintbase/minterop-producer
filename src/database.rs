@@ -102,7 +102,7 @@ pub(crate) async fn query_lister(
         .filter(listings_dsl::approval_id.eq(pg_numeric(approval_id)))
         .select(listings_dsl::listed_by)
         .limit(1)
-        .get_result_async::<String>(&db)
+        .get_result_async::<String>(db)
         .await
     {
         Err(e) => {
@@ -142,7 +142,7 @@ pub(crate) async fn query_offerer(
         .filter(offers_dsl::offer_id.eq(offer_id as i64))
         .select(offers_dsl::offered_by)
         .limit(1)
-        .get_result_async::<String>(&db)
+        .get_result_async::<String>(db)
         .await
     {
         Err(e) => {
