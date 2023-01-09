@@ -114,7 +114,7 @@ async fn insert_nft_activities(
             nft_contract_id: tx.receiver.to_string(),
             token_id: token_id.clone(),
             kind: NFT_ACTIVITY_KIND_TRANSFER.to_string(),
-            action_sender: Some(log.old_owner_id.clone()),
+            action_sender: log.old_owner_id.clone(),
             action_receiver: Some(log.new_owner_id.clone()),
             memo: None,
             price: None,

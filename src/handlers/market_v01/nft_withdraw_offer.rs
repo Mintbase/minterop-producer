@@ -59,14 +59,27 @@ async fn insert_nft_activities(
     tx: ReceiptData,
     data: NftWithdrawOfferData,
 ) {
-    let (nft_contract, token_id, _) = match super::parse_list_id(&data.list_id)
-    {
-        None => {
-            crate::error!("Unparseable list ID: {}, ({:?})", data.list_id, tx);
-            return;
-        }
-        Some(triple) => triple,
-    };
+    let (nft_contract, token_id, approval_id) =
+        match super::parse_list_id(&data.list_id) {
+            None => {
+                crate::error!(
+                    "Unparseable list ID: {}, ({:?})",
+                    data.list_id,
+                    tx
+                );
+                return;
+            }
+            Some(triple) => triple,
+        };
+
+    let lister = crate::database::query_lister(
+        nft_contract.to_string(),
+        token_id.to_string(),
+        tx.receiver.to_string(),
+        approval_id,
+        &rt.pg_connection,
+    )
+    .await;
 
     let activity = NftActivity {
         receipt_id: tx.id.clone(),
@@ -76,8 +89,8 @@ async fn insert_nft_activities(
         nft_contract_id: nft_contract.to_string(),
         token_id: token_id.to_string(),
         kind: NFT_ACTIVITY_KIND_WITHDRAW_OFFER.to_string(),
-        action_sender: None,
-        action_receiver: None,
+        action_sender: tx.sender.to_string(),
+        action_receiver: lister,
         memo: None,
         price: None,
     };

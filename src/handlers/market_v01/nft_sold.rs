@@ -164,36 +164,52 @@ async fn insert_nft_activities(
     tx: ReceiptData,
     data: NftSaleData,
 ) {
-    let (nft_contract, token_id, _) = match super::parse_list_id(&data.list_id)
+    let (nft_contract, token_id, approval_id) =
+        match super::parse_list_id(&data.list_id) {
+            None => {
+                crate::error!(
+                    "Unparseable list ID: {}, ({:?})",
+                    data.list_id,
+                    tx
+                );
+                return;
+            }
+            Some(triple) => triple,
+        };
+
+    if let (lister, Some(offerer)) = crate::database::query_lister_and_offerer(
+        nft_contract.to_string(),
+        token_id.to_string(),
+        tx.receiver.to_string(),
+        approval_id,
+        data.offer_num,
+        &rt.pg_connection,
+    )
+    .await
     {
-        None => {
-            crate::error!("Unparseable list ID: {}, ({:?})", data.list_id, tx);
-            return;
-        }
-        Some(triple) => triple,
-    };
+        // FIXME: implicit assumption: cut is 2.5%
+        let price =
+            data.payout.values().fold(0, |acc, el| acc + el.0) / 975 * 1000;
 
-    // FIXME: implicit assumption: cut is 2.5%
-    let price = data.payout.values().fold(0, |acc, el| acc + el.0) / 975 * 1000;
+        let activity = NftActivity {
+            receipt_id: tx.id.clone(),
+            tx_sender: tx.sender.to_string(),
+            sender_pk: tx.sender_pk.clone(),
+            timestamp: tx.timestamp,
+            nft_contract_id: nft_contract.to_string(),
+            token_id: token_id.to_string(),
+            kind: NFT_ACTIVITY_KIND_SOLD.to_string(),
+            action_sender: offerer,
+            action_receiver: lister,
+            memo: None,
+            price: Some(pg_numeric(price)),
+        };
 
-    let activity = NftActivity {
-        receipt_id: tx.id.clone(),
-        tx_sender: tx.sender.to_string(),
-        sender_pk: tx.sender_pk.clone(),
-        timestamp: tx.timestamp,
-        nft_contract_id: nft_contract.to_string(),
-        token_id: token_id.to_string(),
-        kind: NFT_ACTIVITY_KIND_SOLD.to_string(),
-        action_sender: None,
-        action_receiver: None,
-        memo: None,
-        price: Some(pg_numeric(price)),
-    };
-
-    diesel::insert_into(nft_activities::table)
-        .values(activity)
-        .execute_db(&rt.pg_connection, &tx, "insert activity on sale")
-        .await
+        diesel::insert_into(nft_activities::table)
+            .values(activity)
+            .execute_db(&rt.pg_connection, &tx, "insert activity on sale")
+            .await
+    }
 }
 
 async fn remove_listing_invalidation(
@@ -283,7 +299,7 @@ async fn dispatch_sale_event(
             Some(triple) => triple,
         };
 
-    if let Some(offer) = crate::database::query_offer(
+    if let Some(offerer) = crate::database::query_offerer(
         nft_contract_id.to_string(),
         token_id.to_string(),
         tx.receiver.to_string(),
@@ -297,7 +313,7 @@ async fn dispatch_sale_event(
             .sale(
                 nft_contract_id.to_string(),
                 token_id.to_string(),
-                offer.offered_by,
+                offerer,
                 tx.id,
             )
             .await;
