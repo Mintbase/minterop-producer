@@ -1,5 +1,3 @@
-use minterop_data::db_rows::NftOffer;
-
 const DEFAULT_DB_POOL_SIZE: u32 = 50;
 
 // ------------------------------ actix_diesel ------------------------------ //
@@ -77,14 +75,13 @@ pub(crate) async fn query_metadata_id(
     }
 }
 
-pub(crate) async fn query_offer(
+pub(crate) async fn query_lister(
     nft_contract_id: String,
     token_id: String,
     market_id: String,
     approval_id: u64,
-    offer_id: u64,
     db: &DbConnPool,
-) -> Option<NftOffer> {
+) -> Option<String> {
     use actix_diesel::dsl::AsyncRunQueryDsl;
     use diesel::{
         ExpressionMethods,
@@ -92,23 +89,96 @@ pub(crate) async fn query_offer(
     };
     use minterop_data::{
         pg_numeric,
-        schema::nft_offers::dsl,
+        schema::nft_listings::{
+            self,
+            dsl as listings_dsl,
+        },
     };
 
-    match dsl::nft_offers
-        .filter(dsl::nft_contract_id.eq(nft_contract_id))
-        .filter(dsl::token_id.eq(token_id))
-        .filter(dsl::market_id.eq(market_id))
-        .filter(dsl::approval_id.eq(pg_numeric(approval_id)))
-        .filter(dsl::offer_id.eq(offer_id as i64))
+    match nft_listings::table
+        .filter(listings_dsl::nft_contract_id.eq(nft_contract_id))
+        .filter(listings_dsl::token_id.eq(token_id.clone()))
+        .filter(listings_dsl::market_id.eq(market_id))
+        .filter(listings_dsl::approval_id.eq(pg_numeric(approval_id)))
+        .select(listings_dsl::listed_by)
         .limit(1)
-        .get_result_async::<NftOffer>(db)
+        .get_result_async::<String>(db)
         .await
     {
         Err(e) => {
-            crate::error!("Failed to query offer: {}", e);
+            crate::error!("Failed to get token lister: {}", e);
             None
         }
-        Ok(offer) => Some(offer),
+        Ok(lister) => Some(lister),
     }
+}
+
+pub(crate) async fn query_offerer(
+    nft_contract_id: String,
+    token_id: String,
+    market_id: String,
+    approval_id: u64,
+    offer_id: u64,
+    db: &DbConnPool,
+) -> Option<String> {
+    use actix_diesel::dsl::AsyncRunQueryDsl;
+    use diesel::{
+        ExpressionMethods,
+        QueryDsl,
+    };
+    use minterop_data::{
+        pg_numeric,
+        schema::nft_offers::{
+            self,
+            dsl as offers_dsl,
+        },
+    };
+
+    match nft_offers::table
+        .filter(offers_dsl::nft_contract_id.eq(nft_contract_id))
+        .filter(offers_dsl::token_id.eq(token_id))
+        .filter(offers_dsl::market_id.eq(market_id))
+        .filter(offers_dsl::approval_id.eq(pg_numeric(approval_id)))
+        .filter(offers_dsl::offer_id.eq(offer_id as i64))
+        .select(offers_dsl::offered_by)
+        .limit(1)
+        .get_result_async::<String>(db)
+        .await
+    {
+        Err(e) => {
+            crate::error!("Failed to get offerer {}", e);
+            None
+        }
+        Ok(offerer) => Some(offerer),
+    }
+}
+
+pub(crate) async fn query_lister_and_offerer(
+    nft_contract_id: String,
+    token_id: String,
+    market_id: String,
+    approval_id: u64,
+    offer_id: u64,
+    db: &DbConnPool,
+) -> (Option<String>, Option<String>) {
+    let lister = query_lister(
+        nft_contract_id.clone(),
+        token_id.clone(),
+        market_id.clone(),
+        approval_id,
+        db,
+    )
+    .await;
+
+    let offerer = query_offerer(
+        nft_contract_id,
+        token_id,
+        market_id,
+        approval_id,
+        offer_id,
+        db,
+    )
+    .await;
+
+    (lister, offerer)
 }

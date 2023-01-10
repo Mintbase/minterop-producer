@@ -22,7 +22,11 @@ pub(crate) async fn handle_nft_revoke(
     .await;
 }
 
-async fn delete_nft_approvals(rt: TxProcessingRuntime, tx: ReceiptData, data: NftRevokeData) {
+async fn delete_nft_approvals(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    data: NftRevokeData,
+) {
     use minterop_data::schema::nft_approvals::dsl;
 
     diesel::delete(
@@ -35,7 +39,11 @@ async fn delete_nft_approvals(rt: TxProcessingRuntime, tx: ReceiptData, data: Nf
     .await;
 }
 
-async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: NftRevokeData) {
+async fn insert_nft_activities(
+    rt: TxProcessingRuntime,
+    tx: ReceiptData,
+    log: NftRevokeData,
+) {
     diesel::insert_into(nft_activities::table)
         .values(NftActivity {
             receipt_id: tx.id.clone(),
@@ -45,7 +53,7 @@ async fn insert_nft_activities(rt: TxProcessingRuntime, tx: ReceiptData, log: Nf
             nft_contract_id: tx.receiver.to_string(),
             token_id: log.token_id,
             kind: NFT_ACTIVITY_KIND_REVOKE.to_string(),
-            action_sender: Some(tx.sender.to_string()),
+            action_sender: tx.sender.to_string(),
             action_receiver: Some(log.account_id.to_string()),
             memo: None,
             price: None,
