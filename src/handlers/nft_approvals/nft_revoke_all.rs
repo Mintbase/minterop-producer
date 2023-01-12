@@ -15,9 +15,23 @@ pub(crate) async fn handle_nft_revoke_all(
         Ok(data) => data,
     };
 
-    future::join(
+    future::join4(
         delete_nft_approvals(rt.clone(), tx.clone(), data.clone()),
         insert_nft_activities(rt.clone(), tx.clone(), data.clone()),
+        crate::handlers::invalidate_nft_listings(
+            rt.clone(),
+            tx.clone(),
+            tx.receiver.to_string(),
+            vec![data.token_id.clone()],
+            None,
+        ),
+        crate::handlers::invalidate_nft_offers(
+            rt.clone(),
+            tx.clone(),
+            tx.receiver.to_string(),
+            vec![data.token_id],
+            None,
+        ),
     )
     .await;
 }
