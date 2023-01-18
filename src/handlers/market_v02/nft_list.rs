@@ -90,7 +90,7 @@ async fn insert_nft_activities(
         nft_contract_id: data.nft_contract_id.to_string(),
         token_id: data.nft_token_id,
         kind: NFT_ACTIVITY_KIND_LIST.to_string(),
-        action_sender: tx.sender.to_string(),
+        action_sender: data.nft_owner_id.to_string(),
         action_receiver: Some(tx.receiver.to_string()),
         memo: None,
         price: Some(pg_numeric(data.price.0)),
