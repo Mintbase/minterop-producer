@@ -38,8 +38,15 @@ async fn insert_nft_offer(
         offered_at: tx.timestamp,
         receipt_id: tx.id.clone(),
         offer_id: data.offer_id as i64,
-        referrer_id: data.affiliate_id.map(|account| account.to_string()),
+        referrer_id: data
+            .affiliate_id
+            .as_ref()
+            .map(|account| account.to_string()),
         referral_amount: data
+            .affiliate_amount
+            .map(|balance| pg_numeric(balance.0)),
+        affiliate_id: data.affiliate_id.map(|account| account.to_string()),
+        affiliate_amount: data
             .affiliate_amount
             .map(|balance| pg_numeric(balance.0)),
         withdrawn_at: None,

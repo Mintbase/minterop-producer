@@ -132,6 +132,7 @@ async fn insert_nft_earnings(
             receiver_id: receiver_id.to_string(),
             amount: pg_numeric(amount.0),
             is_referral: false,
+            is_affiliate: false,
             is_mintbase_cut: false,
         })
         .collect::<Vec<_>>();
@@ -149,6 +150,7 @@ async fn insert_nft_earnings(
             receiver_id: tx.receiver.to_string(),
             amount: pg_numeric(mb_amount.0),
             is_referral: false,
+            is_affiliate: false,
             is_mintbase_cut: true,
         });
     }
