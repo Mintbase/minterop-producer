@@ -2,12 +2,12 @@ use mb_sdk::events::mb_market_v02::*;
 
 use crate::handlers::prelude::*;
 
-pub(crate) async fn handle_nft_sold(
+pub(crate) async fn handle_nft_sold_v022(
     rt: &TxProcessingRuntime,
     tx: &ReceiptData,
     data: serde_json::Value,
 ) {
-    let data = match serde_json::from_value::<NftSaleData>(data.clone()) {
+    let data = match serde_json::from_value::<NftSaleDataV022>(data.clone()) {
         Err(_) => {
             error!(r#"Invalid log for "nft_sold": {} ({:?})"#, data, tx);
             return;
@@ -36,7 +36,7 @@ pub(crate) async fn handle_nft_sold(
 async fn update_nft_listings(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    data: NftSaleData,
+    data: NftSaleDataV022,
 ) {
     use nft_listings::dsl;
 
@@ -58,7 +58,7 @@ async fn update_nft_listings(
 async fn update_nft_offers(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    data: NftSaleData,
+    data: NftSaleDataV022,
 ) {
     use nft_offers::dsl;
 
@@ -78,7 +78,7 @@ async fn update_nft_offers(
 async fn insert_nft_earnings(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    mut data: NftSaleData,
+    mut data: NftSaleDataV022,
 ) {
     let mut values = data
         .payout
@@ -99,7 +99,7 @@ async fn insert_nft_earnings(
         })
         .collect::<Vec<_>>();
 
-    if let Some(affiliate_id) = data.affiliate_id {
+    if let Some(referrer_id) = data.referrer_id {
         values.push(NftEarning {
             token_id: data.nft_token_id.clone(),
             nft_contract_id: data.nft_contract_id.to_string(),
@@ -109,27 +109,29 @@ async fn insert_nft_earnings(
             receipt_id: tx.id.clone(),
             timestamp: tx.timestamp,
             currency: data.currency.clone(),
-            receiver_id: affiliate_id.into(),
-            amount: pg_numeric(data.affiliate_amount.unwrap().0),
+            receiver_id: referrer_id.into(),
+            amount: pg_numeric(data.referral_amount.unwrap().0),
             is_referral: true,
             is_mintbase_cut: false,
         });
     }
 
-    values.push(NftEarning {
-        token_id: data.nft_token_id.clone(),
-        nft_contract_id: data.nft_contract_id.to_string(),
-        market_id: tx.receiver.to_string(),
-        approval_id: pg_numeric(data.nft_approval_id),
-        offer_id: data.accepted_offer_id as i64,
-        receipt_id: tx.id.clone(),
-        timestamp: tx.timestamp,
-        currency: data.currency.clone(),
-        receiver_id: tx.receiver.to_string(),
-        amount: pg_numeric(data.mintbase_amount.0),
-        is_referral: false,
-        is_mintbase_cut: true,
-    });
+    if let Some(mb_earning) = data.mintbase_amount {
+        values.push(NftEarning {
+            token_id: data.nft_token_id.clone(),
+            nft_contract_id: data.nft_contract_id.to_string(),
+            market_id: tx.receiver.to_string(),
+            approval_id: pg_numeric(data.nft_approval_id),
+            offer_id: data.accepted_offer_id as i64,
+            receipt_id: tx.id.clone(),
+            timestamp: tx.timestamp,
+            currency: data.currency.clone(),
+            receiver_id: tx.receiver.to_string(),
+            amount: pg_numeric(mb_earning.0),
+            is_referral: false,
+            is_mintbase_cut: true,
+        });
+    }
 
     diesel::insert_into(nft_earnings::table)
         .values(values)
@@ -140,7 +142,7 @@ async fn insert_nft_earnings(
 async fn insert_nft_activities(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    data: NftSaleData,
+    data: NftSaleDataV022,
 ) {
     if let (lister, Some(offerer)) = crate::database::query_lister_and_offerer(
         data.nft_contract_id.to_string(),
@@ -176,7 +178,7 @@ async fn insert_nft_activities(
 async fn remove_listing_invalidation(
     rt: crate::runtime::TxProcessingRuntime,
     tx: crate::ReceiptData,
-    data: NftSaleData,
+    data: NftSaleDataV022,
 ) {
     use minterop_data::schema::nft_listings::dsl;
 
@@ -197,7 +199,7 @@ async fn remove_listing_invalidation(
 async fn remove_offer_invalidation(
     rt: crate::runtime::TxProcessingRuntime,
     tx: crate::ReceiptData,
-    data: NftSaleData,
+    data: NftSaleDataV022,
 ) {
     use minterop_data::schema::nft_offers::dsl;
 
@@ -219,7 +221,7 @@ async fn remove_offer_invalidation(
 async fn dispatch_sale_event(
     rt: crate::runtime::TxProcessingRuntime,
     tx: crate::ReceiptData,
-    data: NftSaleData,
+    data: NftSaleDataV022,
 ) {
     if let Some(offerer) = crate::database::query_offerer(
         data.nft_contract_id.to_string(),
