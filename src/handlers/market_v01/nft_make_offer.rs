@@ -64,6 +64,8 @@ async fn insert_nft_offer(
         offer_id: log.offer_num as i64,
         referrer_id: None,
         referral_amount: None,
+        affiliate_id: None,
+        affiliate_amount: None,
         withdrawn_at: None,
         accepted_at: None,
         invalidated_at: None,

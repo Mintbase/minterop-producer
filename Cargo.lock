@@ -1502,7 +1502,7 @@ dependencies = [
 [[package]]
 name = "mb-sdk"
 version = "0.1.0"
-source = "git+https://github.com/Mintbase/mb-sdk.git?rev=2124c96634c4739864790e605022e68cba0fbb1d#2124c96634c4739864790e605022e68cba0fbb1d"
+source = "git+https://github.com/Mintbase/mb-sdk.git?rev=8c32d752178e77395211ba01c4ab267a550560af#8c32d752178e77395211ba01c4ab267a550560af"
 dependencies = [
  "near-sdk",
  "near_events",
@@ -1553,7 +1553,7 @@ dependencies = [
 [[package]]
 name = "minterop-data"
 version = "0.1.0"
-source = "git+https://github.com/Mintbase/minterop-data?rev=1b6cf82a146bcabaf7707298948f4c9c7345a03c#1b6cf82a146bcabaf7707298948f4c9c7345a03c"
+source = "git+https://github.com/Mintbase/minterop-data?rev=71d31a8311c2ccd499deb56947f09272cdb9bc4b#71d31a8311c2ccd499deb56947f09272cdb9bc4b"
 dependencies = [
  "anyhow",
  "bigdecimal",

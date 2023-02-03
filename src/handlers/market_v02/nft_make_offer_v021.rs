@@ -2,18 +2,22 @@ use mb_sdk::events::mb_market_v02::*;
 
 use crate::handlers::prelude::*;
 
-pub(crate) async fn handle_nft_make_offer(
+pub(crate) async fn handle_nft_make_offer_v021(
     rt: &TxProcessingRuntime,
     tx: &ReceiptData,
     data: serde_json::Value,
 ) {
-    let data = match serde_json::from_value::<NftMakeOfferData>(data.clone()) {
-        Err(_) => {
-            error!(r#"Invalid log for "nft_make_offer": {} ({:?})"#, data, tx);
-            return;
-        }
-        Ok(data) => data,
-    };
+    let data =
+        match serde_json::from_value::<NftMakeOfferDataV021>(data.clone()) {
+            Err(_) => {
+                error!(
+                    r#"Invalid log for "nft_make_offer": {} ({:?})"#,
+                    data, tx
+                );
+                return;
+            }
+            Ok(data) => data,
+        };
 
     future::join(
         insert_nft_offer(rt.clone(), tx.clone(), data.clone()),
@@ -25,7 +29,7 @@ pub(crate) async fn handle_nft_make_offer(
 async fn insert_nft_offer(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    data: NftMakeOfferData,
+    data: NftMakeOfferDataV021,
 ) {
     let offer = NftOffer {
         nft_contract_id: data.nft_contract_id.to_string(),
@@ -39,15 +43,15 @@ async fn insert_nft_offer(
         receipt_id: tx.id.clone(),
         offer_id: data.offer_id as i64,
         referrer_id: data
-            .affiliate_id
+            .referrer_id
             .as_ref()
             .map(|account| account.to_string()),
         referral_amount: data
-            .affiliate_amount
+            .referral_amount
             .map(|balance| pg_numeric(balance.0)),
-        affiliate_id: data.affiliate_id.map(|account| account.to_string()),
+        affiliate_id: data.referrer_id.map(|account| account.to_string()),
         affiliate_amount: data
-            .affiliate_amount
+            .referral_amount
             .map(|balance| pg_numeric(balance.0)),
         withdrawn_at: None,
         accepted_at: None,
@@ -65,7 +69,7 @@ async fn insert_nft_offer(
 async fn insert_nft_activities(
     rt: TxProcessingRuntime,
     tx: ReceiptData,
-    data: NftMakeOfferData,
+    data: NftMakeOfferDataV021,
 ) {
     let lister = crate::database::query_lister(
         data.nft_contract_id.to_string(),
