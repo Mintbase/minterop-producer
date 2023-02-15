@@ -27,10 +27,10 @@ impl MinteropRpcConnector {
         Ok(Self { client, endpoint })
     }
 
-    pub async fn contract(&self, contract_id: AccountId) {
+    pub async fn contract(&self, contract_id: AccountId, refresh: bool) {
         let req = post_json(
             &self.endpoint.to_string(),
-            &RpcMessage::from_contract(contract_id.to_string()),
+            &RpcMessage::from_contract(contract_id.to_string(), refresh),
         );
 
         crate::debug!("req: {:?}", req);
