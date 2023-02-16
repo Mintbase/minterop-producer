@@ -13,7 +13,7 @@ pub(crate) async fn handle_nft_transfer(
     data: serde_json::Value,
 ) {
     // contract should always be inserted prior to token for metadata resolve
-    rt.minterop_rpc.contract(tx.receiver.clone()).await;
+    rt.minterop_rpc.contract(tx.receiver.clone(), false).await;
 
     match serde_json::from_value::<Vec<NftTransferLog>>(data.clone()) {
         Err(_) => {
