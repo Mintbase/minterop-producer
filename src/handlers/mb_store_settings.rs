@@ -37,6 +37,7 @@ pub(crate) async fn handle_mb_store_deploy(
                 created_receipt_id: Some(tx.id.clone()),
                 owner_id: Some(data.owner_id.clone()),
                 is_mintbase: true,
+                category: None,
             })
             .execute_db(&rt.pg_connection, tx, "Updating new contract"),
         // add owner as minter
