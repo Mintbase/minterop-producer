@@ -15,7 +15,7 @@ jobs:
       - name: Rust setup
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-10-01 # TODO: back to stable once fmt features are stable
+          toolchain: nightly-2023-03-17 # TODO: back to stable once fmt features are stable
           default: true
           override: true
           components: rustfmt, clippy
