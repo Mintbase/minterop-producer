@@ -36,7 +36,7 @@ jobs:
 
       - name: Formatting
         run: |
-          cargo +nightly-2022-10-01 fmt -- --check
+          cargo +nightly-2023-03-17 fmt -- --check
           shfmt -i 2 -d .
           taplo fmt **/*.toml --check
           prettier . --check
