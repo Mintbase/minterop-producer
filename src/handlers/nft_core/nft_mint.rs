@@ -40,7 +40,9 @@ async fn handle_nft_mint_log(
     )
     .await;
 
-    tokio::spawn(async move {
+    // Async block prevents runtime borrow from being invalidated
+    #[allow(clippy::redundant_async_block)]
+    actix_rt::spawn(async move {
         rt.minterop_rpc
             .token(
                 tx.receiver.clone(),
