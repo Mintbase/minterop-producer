@@ -1,4 +1,4 @@
-mod prelude {
+pub(crate) mod prelude {
     pub use diesel::{
         ExpressionMethods,
         QueryDsl,
