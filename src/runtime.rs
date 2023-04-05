@@ -19,6 +19,7 @@ pub struct MintlakeRuntime {
     pub(crate) pg_connection: DbConnPool,
     pub(crate) minterop_rpc: MinteropRpcConnector,
     pub(crate) mintbase_root: String,
+    pub(crate) paras_marketplace_id: String,
     pub(crate) contract_filter: Option<Vec<String>>,
 }
 
@@ -142,8 +143,6 @@ impl MintlakeRuntime {
                 // establish a new connection on every transaction. That's what
                 // we want here
                 let rt = self.tx_processing_runtime();
-                // Async block prevents runtime borrow from being invalidated
-                #[allow(clippy::redundant_async_block)]
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
@@ -194,8 +193,6 @@ impl MintlakeRuntime {
                 // establish a new connection on every transaction. That's what
                 // we want here
                 let rt = self.tx_processing_runtime();
-                // Async block prevents runtime borrow from being invalidated
-                #[allow(clippy::redundant_async_block)]
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
@@ -220,6 +217,7 @@ impl MintlakeRuntime {
             pg_connection: self.pg_connection.clone(),
             minterop_rpc: self.minterop_rpc.clone(),
             mintbase_root: self.mintbase_root.clone(),
+            paras_marketplace_id: self.paras_marketplace_id.clone(),
         }
     }
 }
@@ -231,14 +229,16 @@ async fn handle_tx(
     tx: ReceiptData,
     logs: Vec<String>,
 ) {
-    for log in logs
-        .into_iter()
-        .filter(|log| log.starts_with("EVENT_JSON:"))
-    {
-        handle_log(rt, tx.clone(), log).await;
+    for log in logs.into_iter() {
+        if log.starts_with("EVENT_JSON:") {
+            handle_log(rt, tx.clone(), log).await;
+        } else if tx.receiver.to_string() == rt.paras_marketplace_id {
+            crate::paras::handle_paras_market_log(rt, &tx, &log).await;
+        }
     }
 }
 
+// TODO: we might wish to move this
 /// Parses standard, version, and event type out of an event logs, selects an
 /// appropriate handler function, and passes the data.
 async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
@@ -346,6 +346,7 @@ pub(crate) struct TxProcessingRuntime {
     pub(crate) pg_connection: DbConnPool,
     pub(crate) minterop_rpc: MinteropRpcConnector,
     pub(crate) mintbase_root: String,
+    pub(crate) paras_marketplace_id: String,
 }
 
 #[derive(Debug, Clone)]
