@@ -9,21 +9,6 @@ struct ParasMarketEvent {
     params: serde_json::Value,
 }
 
-const UNSTRUCTURED_LOG_PREFIXES: [&str; 3] = [
-    "Paras: Offer does not exist",
-    "Paras: seller's nft failed to trade, rollback buyer's nft",
-    "Insufficient storage paid: ",
-];
-
-fn is_unstructured_log_prefix(log: &str) -> bool {
-    for prefix in UNSTRUCTURED_LOG_PREFIXES {
-        if log.starts_with(prefix) {
-            return true;
-        }
-    }
-    false
-}
-
 #[derive(Deserialize, Debug)]
 struct AddMarketDataParams {
     owner_id: String,
@@ -273,4 +258,19 @@ async fn handle_delete_market_data(
     ))
     .execute_db(&rt.pg_connection, tx, "mark external listing as deleted")
     .await;
+}
+
+const UNSTRUCTURED_LOG_PREFIXES: [&str; 3] = [
+    "Paras: Offer does not exist",
+    "Paras: seller's nft failed to trade, rollback buyer's nft",
+    "Insufficient storage paid: ",
+];
+
+fn is_unstructured_log_prefix(log: &str) -> bool {
+    for prefix in UNSTRUCTURED_LOG_PREFIXES {
+        if log.starts_with(prefix) {
+            return true;
+        }
+    }
+    false
 }

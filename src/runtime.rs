@@ -233,7 +233,8 @@ async fn handle_tx(
         if log.starts_with("EVENT_JSON:") {
             handle_log(rt, tx.clone(), log).await;
         } else if tx.receiver.as_str() == rt.paras_marketplace_id.as_str() {
-            crate::paras::handle_paras_market_log(rt, &tx, &log).await;
+            crate::handlers::paras::handle_paras_market_log(rt, &tx, &log)
+                .await;
         }
     }
 }

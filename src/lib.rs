@@ -2,7 +2,6 @@ mod config;
 mod database;
 mod handlers;
 mod logging;
-mod paras;
 mod rpc_connection;
 mod runtime;
 

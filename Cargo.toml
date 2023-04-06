@@ -41,7 +41,7 @@ serde_json = { version = "1.0.81", features = ["arbitrary_precision"] }
 serde = { version = "1", features = ["derive"] }
 async-trait = "0.1.56"
 futures = "0.3.21"
-# TODO: only keep if the paras params stay here
+# Required for json_types inside paras market events
 near-sdk = "4.1.1"
 
 
