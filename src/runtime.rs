@@ -143,6 +143,7 @@ impl MintlakeRuntime {
                 // establish a new connection on every transaction. That's what
                 // we want here
                 let rt = self.tx_processing_runtime();
+                #[allow(clippy::redundant_async_block)]
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
@@ -193,6 +194,7 @@ impl MintlakeRuntime {
                 // establish a new connection on every transaction. That's what
                 // we want here
                 let rt = self.tx_processing_runtime();
+                #[allow(clippy::redundant_async_block)]
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
