@@ -32,10 +32,15 @@ struct AddMarketDataParams {
     token_id: String,
     ft_token_id: String,
     price: near_sdk::json_types::U128,
+    #[allow(unused)]
     started_at: Option<u64>,
+    #[allow(unused)]
     ended_at: Option<near_sdk::json_types::U64>,
+    #[allow(unused)]
     end_price: Option<near_sdk::json_types::U128>,
+    #[allow(unused)]
     is_auction: Option<bool>,
+    #[allow(unused)]
     transaction_fee: near_sdk::json_types::U128,
 }
 
@@ -51,10 +56,13 @@ struct ResolvePurchaseParams {
     owner_id: String,
     nft_contract_id: String,
     token_id: String,
+    #[allow(unused)]
     token_series_id: Option<String>,
+    #[allow(unused)]
     ft_token_id: String,
     price: near_sdk::json_types::U128,
     buyer_id: String,
+    #[allow(unused)]
     is_offer: Option<bool>,
 }
 
@@ -107,6 +115,8 @@ async fn handle_resolve_purchase_fail(
     tx: &ReceiptData,
     params: serde_json::Value,
 ) {
+    use nft_external_listings::dsl;
+
     let params =
         match serde_json::from_value::<ResolvePurchaseParams>(params.clone()) {
             Ok(params) => params,
@@ -120,7 +130,21 @@ async fn handle_resolve_purchase_fail(
                 return;
             }
         };
-    // TODO: actually handling this
+
+    diesel::update(
+        dsl::nft_external_listings
+            .filter(dsl::nft_contract_id.eq(params.nft_contract_id))
+            .filter(dsl::token_id.eq(params.token_id))
+            .filter(dsl::market_id.eq(tx.receiver.to_string()))
+            // weird to use lister instead of approval_id, but that's what we get
+            .filter(dsl::lister_id.eq(params.owner_id)),
+    )
+    .set((
+        dsl::failed_at.eq(tx.timestamp),
+        dsl::failure_receipt_id.eq(tx.id.clone()),
+    ))
+    .execute_db(&rt.pg_connection, tx, "mark external listing as failed")
+    .await;
 }
 
 /// nft_transfer_payout succeeded
@@ -129,6 +153,8 @@ async fn handle_resolve_purchase(
     tx: &ReceiptData,
     params: serde_json::Value,
 ) {
+    use nft_external_listings::dsl;
+
     let params =
         match serde_json::from_value::<ResolvePurchaseParams>(params.clone()) {
             Ok(params) => params,
@@ -142,7 +168,23 @@ async fn handle_resolve_purchase(
                 return;
             }
         };
-    // TODO: actually handling this
+
+    diesel::update(
+        dsl::nft_external_listings
+            .filter(dsl::nft_contract_id.eq(params.nft_contract_id))
+            .filter(dsl::token_id.eq(params.token_id))
+            .filter(dsl::market_id.eq(tx.receiver.to_string()))
+            // weird to use lister instead of approval_id, but that's what we get
+            .filter(dsl::lister_id.eq(params.owner_id)),
+    )
+    .set((
+        dsl::buyer_id.eq(params.buyer_id),
+        dsl::sale_price.eq(pg_numeric(params.price.0)),
+        dsl::sold_at.eq(tx.timestamp),
+        dsl::sale_receipt_id.eq(tx.id.clone()),
+    ))
+    .execute_db(&rt.pg_connection, tx, "mark external listing as sold")
+    .await;
 }
 
 /// Create a listing on paras
@@ -191,7 +233,7 @@ async fn handle_add_market_data(
             failed_at: None,
             failure_receipt_id: None,
         })
-        .execute_db(&rt.pg_connection, &tx, "insert external listing")
+        .execute_db(&rt.pg_connection, tx, "insert external listing")
         .await;
 }
 
@@ -229,6 +271,6 @@ async fn handle_delete_market_data(
         dsl::deleted_at.eq(tx.timestamp),
         dsl::deletion_receipt_id.eq(tx.id.clone()),
     ))
-    .execute_db(&rt.pg_connection, &tx, "mark external listing as deleted")
+    .execute_db(&rt.pg_connection, tx, "mark external listing as deleted")
     .await;
 }
