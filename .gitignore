@@ -12,6 +12,7 @@ scripts/deploy-indexer-tmp.sh
 .github/workflows/testnet.yaml
 sa-keyfile.json
 tmp.txt
+paras.md
 *.env
 seed-testnet/keys
 seed-testnet/build

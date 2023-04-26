@@ -1,4 +1,4 @@
-mod prelude {
+pub(crate) mod prelude {
     pub use diesel::{
         ExpressionMethods,
         QueryDsl,
@@ -26,6 +26,7 @@ crate::forward_mod!(contract_metadata_update);
 
 pub mod market_v01;
 pub mod market_v02;
+pub mod paras;
 
 async fn invalidate_nft_listings(
     rt: crate::runtime::TxProcessingRuntime,

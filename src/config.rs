@@ -18,6 +18,7 @@ pub struct Config {
     mintbase_root: String,
     db_pool_size: Option<u32>,
     contract_filter: Option<String>,
+    paras_marketplace_id: String,
 }
 
 impl Config {
@@ -37,6 +38,7 @@ impl Config {
             ),
             minterop_rpc,
             mintbase_root: self.mintbase_root.clone(),
+            paras_marketplace_id: self.paras_marketplace_id.clone(),
             contract_filter: self
                 .contract_filter
                 .clone()
