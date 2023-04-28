@@ -147,15 +147,16 @@ async fn insert_nft_activities(
     tx: ReceiptData,
     data: NftSaleDataV022,
 ) {
-    if let (lister, Some(offerer)) = crate::database::query_lister_and_offerer(
-        data.nft_contract_id.to_string(),
-        data.nft_token_id.clone(),
-        tx.receiver.to_string(),
-        data.nft_approval_id,
-        data.accepted_offer_id,
-        &rt.pg_connection,
-    )
-    .await
+    if let (Some((lister, currency)), Some(offerer)) =
+        crate::database::query_lister_currency_offerer(
+            data.nft_contract_id.to_string(),
+            data.nft_token_id.clone(),
+            tx.receiver.to_string(),
+            data.nft_approval_id,
+            data.accepted_offer_id,
+            &rt.pg_connection,
+        )
+        .await
     {
         let activity = NftActivity {
             receipt_id: tx.id.clone(),
@@ -166,9 +167,10 @@ async fn insert_nft_activities(
             token_id: data.nft_token_id.to_string(),
             kind: NFT_ACTIVITY_KIND_SOLD.to_string(),
             action_sender: offerer,
-            action_receiver: lister,
+            action_receiver: Some(lister),
             memo: None,
             price: Some(pg_numeric(data.price.0)),
+            currency: Some(currency),
         };
 
         diesel::insert_into(nft_activities::table)
