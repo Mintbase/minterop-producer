@@ -16,6 +16,8 @@ pub(crate) mod prelude {
         runtime::TxProcessingRuntime,
         ReceiptData,
     };
+
+    pub(crate) const CURRENCY_NEAR: &str = "near";
 }
 
 crate::forward_mod!(nft_core);

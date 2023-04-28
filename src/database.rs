@@ -75,13 +75,13 @@ pub(crate) async fn query_metadata_id(
     }
 }
 
-pub(crate) async fn query_lister(
+pub(crate) async fn query_lister_currency(
     nft_contract_id: String,
     token_id: String,
     market_id: String,
     approval_id: u64,
     db: &DbConnPool,
-) -> Option<String> {
+) -> Option<(String, String)> {
     use actix_diesel::dsl::AsyncRunQueryDsl;
     use diesel::{
         ExpressionMethods,
@@ -100,16 +100,16 @@ pub(crate) async fn query_lister(
         .filter(listings_dsl::token_id.eq(token_id.clone()))
         .filter(listings_dsl::market_id.eq(market_id))
         .filter(listings_dsl::approval_id.eq(pg_numeric(approval_id)))
-        .select(listings_dsl::listed_by)
+        .select((listings_dsl::listed_by, listings_dsl::currency))
         .limit(1)
-        .get_result_async::<String>(db)
+        .get_result_async::<(String, String)>(db)
         .await
     {
         Err(e) => {
-            crate::error!("Failed to get token lister: {}", e);
+            crate::error!("Failed to get token lister/currency: {}", e);
             None
         }
-        Ok(lister) => Some(lister),
+        Ok(res) => Some(res),
     }
 }
 
@@ -153,15 +153,15 @@ pub(crate) async fn query_offerer(
     }
 }
 
-pub(crate) async fn query_lister_and_offerer(
+pub(crate) async fn query_lister_currency_offerer(
     nft_contract_id: String,
     token_id: String,
     market_id: String,
     approval_id: u64,
     offer_id: u64,
     db: &DbConnPool,
-) -> (Option<String>, Option<String>) {
-    let lister = query_lister(
+) -> (Option<(String, String)>, Option<String>) {
+    let lister_currency = query_lister_currency(
         nft_contract_id.clone(),
         token_id.clone(),
         market_id.clone(),
@@ -180,5 +180,5 @@ pub(crate) async fn query_lister_and_offerer(
     )
     .await;
 
-    (lister, offerer)
+    (lister_currency, offerer)
 }

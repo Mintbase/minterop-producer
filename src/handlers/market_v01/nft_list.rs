@@ -111,6 +111,7 @@ async fn insert_nft_activities(
         action_receiver: Some(tx.receiver.to_string()),
         memo: None,
         price: Some(pg_numeric(log.price.0)),
+        currency: Some(CURRENCY_NEAR.to_string()),
     };
 
     diesel::insert_into(nft_activities::table)

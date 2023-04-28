@@ -179,16 +179,18 @@ async fn insert_nft_activities(
             Some(triple) => triple,
         };
 
-    if let (lister, Some(offerer)) = crate::database::query_lister_and_offerer(
-        nft_contract.to_string(),
-        token_id.to_string(),
-        tx.receiver.to_string(),
-        approval_id,
-        data.offer_num,
-        &rt.pg_connection,
-    )
-    .await
+    if let (lister_currency, Some(offerer)) =
+        crate::database::query_lister_currency_offerer(
+            nft_contract.to_string(),
+            token_id.to_string(),
+            tx.receiver.to_string(),
+            approval_id,
+            data.offer_num,
+            &rt.pg_connection,
+        )
+        .await
     {
+        let lister = lister_currency.map(|lc| lc.0);
         // FIXME: implicit assumption: cut is 2.5%
         let price =
             data.payout.values().fold(0, |acc, el| acc + el.0) / 975 * 1000;
@@ -205,6 +207,7 @@ async fn insert_nft_activities(
             action_receiver: lister,
             memo: None,
             price: Some(pg_numeric(price)),
+            currency: Some(CURRENCY_NEAR.to_string()),
         };
 
         diesel::insert_into(nft_activities::table)

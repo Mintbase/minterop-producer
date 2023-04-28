@@ -73,6 +73,7 @@ async fn insert_nft_activities(
             action_receiver: Some(log.account_id.to_string()),
             memo: None,
             price: None,
+            currency: None,
         })
         .execute_db(&rt.pg_connection, &tx, "insert activity on transfer")
         .await

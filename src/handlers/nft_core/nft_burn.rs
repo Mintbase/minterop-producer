@@ -106,6 +106,7 @@ async fn insert_nft_activities(
             action_receiver: None,
             memo: None,
             price: None,
+            currency: None,
         })
         .collect::<Vec<_>>();
 

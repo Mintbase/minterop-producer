@@ -72,14 +72,15 @@ async fn insert_nft_activities(
             Some(triple) => triple,
         };
 
-    let lister = crate::database::query_lister(
+    let lister = crate::database::query_lister_currency(
         nft_contract.to_string(),
         token_id.to_string(),
         tx.receiver.to_string(),
         approval_id,
         &rt.pg_connection,
     )
-    .await;
+    .await
+    .map(|lc| lc.0);
 
     let activity = NftActivity {
         receipt_id: tx.id.clone(),
@@ -93,6 +94,7 @@ async fn insert_nft_activities(
         action_receiver: lister,
         memo: None,
         price: None,
+        currency: None,
     };
 
     diesel::insert_into(nft_activities::table)

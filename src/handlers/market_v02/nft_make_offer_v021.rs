@@ -71,31 +71,33 @@ async fn insert_nft_activities(
     tx: ReceiptData,
     data: NftMakeOfferDataV021,
 ) {
-    let lister = crate::database::query_lister(
+    if let Some((lister, currency)) = crate::database::query_lister_currency(
         data.nft_contract_id.to_string(),
         data.nft_token_id.clone(),
         tx.receiver.to_string(),
         data.nft_approval_id,
         &rt.pg_connection,
     )
-    .await;
+    .await
+    {
+        let activity = NftActivity {
+            receipt_id: tx.id.clone(),
+            tx_sender: tx.sender.to_string(),
+            sender_pk: tx.sender_pk.clone(),
+            timestamp: tx.timestamp,
+            nft_contract_id: data.nft_contract_id.to_string(),
+            token_id: data.nft_token_id,
+            kind: NFT_ACTIVITY_KIND_MAKE_OFFER.to_string(),
+            action_sender: tx.sender.to_string(),
+            action_receiver: Some(lister),
+            memo: None,
+            price: Some(pg_numeric(data.price.0)),
+            currency: Some(currency),
+        };
 
-    let activity = NftActivity {
-        receipt_id: tx.id.clone(),
-        tx_sender: tx.sender.to_string(),
-        sender_pk: tx.sender_pk.clone(),
-        timestamp: tx.timestamp,
-        nft_contract_id: data.nft_contract_id.to_string(),
-        token_id: data.nft_token_id,
-        kind: NFT_ACTIVITY_KIND_MAKE_OFFER.to_string(),
-        action_sender: tx.sender.to_string(),
-        action_receiver: lister,
-        memo: None,
-        price: Some(pg_numeric(data.price.0)),
+        diesel::insert_into(nft_activities::table)
+            .values(activity)
+            .execute_db(&rt.pg_connection, &tx, "insert activity on make offer")
+            .await
     };
-
-    diesel::insert_into(nft_activities::table)
-        .values(activity)
-        .execute_db(&rt.pg_connection, &tx, "insert activity on make offer")
-        .await
 }

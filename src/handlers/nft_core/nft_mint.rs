@@ -110,6 +110,7 @@ async fn insert_nft_activities(
             action_receiver: Some(log.owner_id.clone()),
             memo: log.memo.clone(),
             price: None,
+            currency: None,
         })
         .collect::<Vec<_>>();
 
