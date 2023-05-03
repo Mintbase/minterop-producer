@@ -66,8 +66,8 @@ rev = "f5e36e02b3bb030b99425b0ec7a46478b0967857"
 features = ["ser", "de"]
 
 [dependencies.mb-sdk]
-git = "https://github.com/Mintbase/mb-sdk.git"
-rev = "8c32d752178e77395211ba01c4ab267a550560af"
+git = "https://github.com/Mintbase/mb-contracts"
+rev = "49b943e089953ba596a1b8f5bc3a05e62f4382e0"
 features = ["all"]
 
 [dependencies.minterop-data]
