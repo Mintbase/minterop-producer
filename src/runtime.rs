@@ -258,20 +258,31 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
 
     match (standard.as_str(), version.as_str(), event.as_str()) {
         // ------------ nft_core
-        ("nep171", "1.0.0", "nft_mint") | ("nep171", "1.1.0", "nft_mint") => {
+        ("nep171", "1.0.0", "nft_mint")
+        | ("nep171", "1.1.0", "nft_mint")
+        | ("nep171", "1.2.0", "nft_mint") => {
             handle_nft_mint(rt, &tx, data).await
         }
         ("nep171", "1.0.0", "nft_transfer")
-        | ("nep171", "1.1.0", "nft_transfer") => {
+        | ("nep171", "1.1.0", "nft_transfer")
+        | ("nep171", "1.2.0", "nft_transfer") => {
             handle_nft_transfer(rt, &tx, data).await
         }
-        ("nep171", "1.0.0", "nft_burn") | ("nep171", "1.1.0", "nft_burn") => {
+        ("nep171", "1.0.0", "nft_burn")
+        | ("nep171", "1.1.0", "nft_burn")
+        | ("nep171", "1.2.0", "nft_burn") => {
             handle_nft_burn(rt, &tx, data).await
         }
         // ------------ contract_metadata_update
-        ("nep171", "1.1.0", "contract_metadata_update") => {
+        ("nep171", "1.1.0", "contract_metadata_update")
+        | ("nep171", "1.2.0", "contract_metadata_update") => {
             // data is empty according to standard
             handle_contract_metadata_update(rt, &tx).await
+        }
+        // ------------ contract_metadata_update
+        ("nep171", "1.1.0", "nft_metadata_update")
+        | ("nep171", "1.2.0", "nft_metadata_update") => {
+            handle_nft_metadata_update(rt, &tx, data).await
         }
         // ------------ nft_approvals
         ("mb_store", "0.1.0", "nft_approve") => {
