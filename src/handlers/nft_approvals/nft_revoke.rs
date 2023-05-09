@@ -1,4 +1,4 @@
-use mb_sdk::events::nft_approvals::NftRevokeData;
+use mb_sdk::events::store::NftRevokeData;
 
 use crate::handlers::prelude::*;
 

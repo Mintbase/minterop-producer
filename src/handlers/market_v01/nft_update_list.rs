@@ -1,4 +1,4 @@
-use mb_sdk::events::mb_market_v01::*;
+use mb_sdk::events::market_v1::NftUpdateListData;
 
 use crate::handlers::prelude::*;
 

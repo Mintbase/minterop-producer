@@ -1,4 +1,4 @@
-use mb_sdk::events::nft_core::NftMintLog;
+use mb_sdk::events::store::NftMintLog;
 
 use crate::{
     error,

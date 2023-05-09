@@ -1,4 +1,4 @@
-use mb_sdk::events::nft_approvals::NftApproveLog;
+use mb_sdk::events::store::NftApproveLog;
 
 use crate::handlers::prelude::*;
 

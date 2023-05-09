@@ -1746,10 +1746,13 @@ dependencies = [
 [[package]]
 name = "mb-sdk"
 version = "0.1.0"
-source = "git+https://github.com/Mintbase/mb-sdk.git?rev=8c32d752178e77395211ba01c4ab267a550560af#8c32d752178e77395211ba01c4ab267a550560af"
+source = "git+https://github.com/Mintbase/mb-contracts?rev=b3345fb411ef3fcbf7861bbf4dcd05dd18224414#b3345fb411ef3fcbf7861bbf4dcd05dd18224414"
 dependencies = [
+ "ed25519-dalek",
  "near-sdk",
- "near_events",
+ "near_events 0.1.0 (git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525)",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1829,7 +1832,7 @@ dependencies = [
  "minterop-data",
  "near-lake-framework",
  "near-sdk",
- "near_events",
+ "near_events 0.1.0 (git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857)",
  "serde",
  "serde_json",
  "tokio",
@@ -1971,10 +1974,34 @@ dependencies = [
 [[package]]
 name = "near-event-data-log-macro"
 version = "0.1.0"
+source = "git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525#82559b1f33eb096d915e767cd521a78c112a6525"
+dependencies = [
+ "itertools",
+ "proc-macro-support 0.1.0 (git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525)",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "near-event-data-log-macro"
+version = "0.1.0"
 source = "git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857#f5e36e02b3bb030b99425b0ec7a46478b0967857"
 dependencies = [
  "itertools",
- "proc-macro-support",
+ "proc-macro-support 0.1.0 (git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857)",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "near-event-data-macro"
+version = "0.1.0"
+source = "git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525#82559b1f33eb096d915e767cd521a78c112a6525"
+dependencies = [
+ "itertools",
+ "proc-macro-support 0.1.0 (git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525)",
  "proc-macro2",
  "quote",
  "syn",
@@ -1986,7 +2013,7 @@ version = "0.1.0"
 source = "git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857#f5e36e02b3bb030b99425b0ec7a46478b0967857"
 dependencies = [
  "itertools",
- "proc-macro-support",
+ "proc-macro-support 0.1.0 (git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857)",
  "proc-macro2",
  "quote",
  "syn",
@@ -2298,10 +2325,21 @@ dependencies = [
 [[package]]
 name = "near_events"
 version = "0.1.0"
+source = "git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525#82559b1f33eb096d915e767cd521a78c112a6525"
+dependencies = [
+ "near-event-data-log-macro 0.1.0 (git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525)",
+ "near-event-data-macro 0.1.0 (git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525)",
+ "near-sdk",
+ "serde_json",
+]
+
+[[package]]
+name = "near_events"
+version = "0.1.0"
 source = "git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857#f5e36e02b3bb030b99425b0ec7a46478b0967857"
 dependencies = [
- "near-event-data-log-macro",
- "near-event-data-macro",
+ "near-event-data-log-macro 0.1.0 (git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857)",
+ "near-event-data-macro 0.1.0 (git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857)",
  "near-sdk",
  "serde_json",
 ]
@@ -2695,6 +2733,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "version_check",
+]
+
+[[package]]
+name = "proc-macro-support"
+version = "0.1.0"
+source = "git+https://github.com/mintbase/near-events?rev=82559b1f33eb096d915e767cd521a78c112a6525#82559b1f33eb096d915e767cd521a78c112a6525"
+dependencies = [
+ "itertools",
+ "proc-macro2",
+ "syn",
 ]
 
 [[package]]

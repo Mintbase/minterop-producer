@@ -1,4 +1,4 @@
-use mb_sdk::events::mb_store_settings::{
+use mb_sdk::events::store::{
     MbStoreChangeSettingData,
     MbStoreDeployData,
 };
