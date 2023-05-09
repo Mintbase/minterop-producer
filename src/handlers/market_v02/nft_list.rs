@@ -17,9 +17,7 @@ pub(crate) async fn handle_nft_list(
         Ok(data) => data,
     };
 
-    future::join4(
-        insert_nft_listing(rt.clone(), tx.clone(), data.clone()),
-        insert_nft_activities(rt.clone(), tx.clone(), data.clone()),
+    future::join(
         crate::handlers::invalidate_nft_listings(
             rt.clone(),
             tx.clone(),
@@ -34,6 +32,11 @@ pub(crate) async fn handle_nft_list(
             vec![data.nft_token_id.clone()],
             Some(tx.receiver.to_string()),
         ),
+    )
+    .await;
+    future::join(
+        insert_nft_listing(rt.clone(), tx.clone(), data.clone()),
+        insert_nft_activities(rt.clone(), tx.clone(), data.clone()),
     )
     .await;
 }
