@@ -95,6 +95,7 @@ async fn insert_nft_tokens(
             dsl::owner.eq(log.new_owner_id.clone()),
             dsl::last_transfer_timestamp.eq(tx.timestamp),
             dsl::last_transfer_receipt_id.eq(tx.id.clone()),
+            dsl::splits.eq(None),
         ))
         .execute_db(&rt.pg_connection, &tx, "insert token on transfer")
         .await
