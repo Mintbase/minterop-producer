@@ -179,7 +179,7 @@ async fn insert_nft_activities(
             Some(triple) => triple,
         };
 
-    if let (Some(lister, currency), offerer) =
+    if let (Some((lister, _)), offerer) =
         crate::database::query_lister_currency_offerer(
             nft_contract.to_string(),
             token_id.to_string(),
