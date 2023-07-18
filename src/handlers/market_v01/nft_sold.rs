@@ -179,7 +179,7 @@ async fn insert_nft_activities(
             Some(triple) => triple,
         };
 
-    if let (lister_currency, Some(offerer)) =
+    if let (Some(lister, currency), offerer) =
         crate::database::query_lister_currency_offerer(
             nft_contract.to_string(),
             token_id.to_string(),
@@ -190,7 +190,6 @@ async fn insert_nft_activities(
         )
         .await
     {
-        let lister = lister_currency.map(|lc| lc.0);
         // FIXME: implicit assumption: cut is 2.5%
         let price =
             data.payout.values().fold(0, |acc, el| acc + el.0) / 975 * 1000;
@@ -203,8 +202,8 @@ async fn insert_nft_activities(
             nft_contract_id: nft_contract.to_string(),
             token_id: token_id.to_string(),
             kind: NFT_ACTIVITY_KIND_SOLD.to_string(),
-            action_sender: offerer,
-            action_receiver: lister,
+            action_sender: lister,
+            action_receiver: offerer,
             memo: None,
             price: Some(pg_numeric(price)),
             currency: Some(CURRENCY_NEAR.to_string()),
