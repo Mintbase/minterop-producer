@@ -38,7 +38,7 @@ export const createSeries = async (owner: Account) => {
       },
     },
     MAX_GAS,
-    nearToYocto("5")
+    nearToYocto("5"),
   );
 
   return result;
@@ -47,7 +47,7 @@ export const createSeries = async (owner: Account) => {
 export const mintParasToken = async (
   minter: Account,
   owner: Account,
-  seriesId: string = PARAS_TOKEN_TEST_SERIES_ID
+  seriesId: string = PARAS_TOKEN_TEST_SERIES_ID,
 ) => {
   const result = await callContractMethod(
     minter,
@@ -58,7 +58,7 @@ export const mintParasToken = async (
       receiver_id: owner.accountId,
     },
     MAX_GAS,
-    nearToYocto("0.09")
+    nearToYocto("0.09"),
   );
 
   const [{ data }] = result;

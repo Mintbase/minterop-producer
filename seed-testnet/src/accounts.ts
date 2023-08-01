@@ -22,7 +22,7 @@ export const getSecretResourceId = (accountName: string): string =>
   `${SECRETS_REPO_PATH}${accountName.replace(/\./g, "_")}/versions/1`;
 
 export const loadAccount = async (
-  accountName: string = FACTORY_ACCOUNT
+  accountName: string = FACTORY_ACCOUNT,
 ): Promise<Account> => {
   const near = await connect(TESTNET_NEAR_CONFIG);
   const client = new SecretManagerServiceClient();
@@ -37,7 +37,7 @@ export const loadAccount = async (
     await keyStore.setKey(
       TESTNET_NEAR_CONFIG.networkId,
       accountName,
-      KeyPair.fromString(gcpPK)
+      KeyPair.fromString(gcpPK),
     );
   } else {
     throw new Error(`Unable to load account ${accountName} from GCP`);
@@ -73,7 +73,7 @@ export const createAccount = async (accountName: string): Promise<Account> => {
   await parent.createAccount(
     accountName, // new account name
     publicKey, // public key for new account
-    ACCOUNT_INITIAL_BALANCE // initial balance for new account in yoctoNEAR
+    ACCOUNT_INITIAL_BALANCE, // initial balance for new account in yoctoNEAR
   );
 
   return await near.account(accountName);

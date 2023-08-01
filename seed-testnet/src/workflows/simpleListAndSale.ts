@@ -7,7 +7,7 @@ const nearToYocto = utils.format.parseNearAmount;
 export const simpleListAndSale = async (
   lister: Account,
   buyer: Account,
-  tokenId: string
+  tokenId: string,
 ) => {
   // make a storage deposit
   const despositCall = await callContractMethod(
@@ -16,7 +16,7 @@ export const simpleListAndSale = async (
     "deposit_storage",
     {},
     MAX_GAS,
-    nearToYocto("0.01")
+    nearToYocto("0.01"),
   );
 
   // call approve to list the token
@@ -30,7 +30,7 @@ export const simpleListAndSale = async (
       msg: JSON.stringify({ price: nearToYocto("0.5") }),
     },
     MAX_GAS,
-    nearToYocto("0.008")
+    nearToYocto("0.008"),
   );
 
   const purchaseCall = await callContractMethod(
@@ -42,7 +42,7 @@ export const simpleListAndSale = async (
       token_id: tokenId,
     },
     MAX_GAS,
-    nearToYocto("0.6")
+    nearToYocto("0.6"),
   );
 
   return {

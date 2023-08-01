@@ -1,7 +1,7 @@
 import * as near from "near-api-js";
 
 export const getTestNetConfig = (
-  keyStore: near.keyStores.UnencryptedFileSystemKeyStore
+  keyStore: near.keyStores.UnencryptedFileSystemKeyStore,
 ) => {
   const TESTNET_NEAR_CONFIG = {
     networkId: "testnet",

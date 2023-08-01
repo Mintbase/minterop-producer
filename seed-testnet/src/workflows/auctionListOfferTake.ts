@@ -12,7 +12,7 @@ export const auctionListOfferTake = async (
   lister: Account,
   buyer: Account,
   firstOfferAccount: Account,
-  tokenId: string
+  tokenId: string,
 ) => {
   // call approve to list the token as auction
   const approveCall = await callContractMethod(
@@ -25,7 +25,7 @@ export const auctionListOfferTake = async (
       msg: JSON.stringify({ price: nearToYocto("0.1"), autotransfer: false }),
     },
     MAX_GAS,
-    nearToYocto("0.008")
+    nearToYocto("0.008"),
   );
 
   const firstOfferCall = await callContractMethod(
@@ -38,7 +38,7 @@ export const auctionListOfferTake = async (
       timeout: [{ Hours: 24 }],
     },
     MAX_GAS,
-    nearToYocto("0.11")
+    nearToYocto("0.11"),
   );
 
   const offerCall = await callContractMethod(
@@ -51,7 +51,7 @@ export const auctionListOfferTake = async (
       timeout: [{ Hours: 24 }],
     },
     MAX_GAS,
-    nearToYocto("0.123")
+    nearToYocto("0.123"),
   );
 
   const takeCall = await callContractMethod(
@@ -62,7 +62,7 @@ export const auctionListOfferTake = async (
       token_key: `${tokenId}:${DEFAULT_STORE_CONTRACT}`,
     },
     MAX_GAS,
-    "1"
+    "1",
   );
 
   return {

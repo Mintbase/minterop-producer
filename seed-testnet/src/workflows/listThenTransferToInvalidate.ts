@@ -7,7 +7,7 @@ const nearToYocto = utils.format.parseNearAmount;
 export const listThenTransferToInvalidate = async (
   lister: Account,
   transfer_to: Account,
-  tokenId: string
+  tokenId: string,
 ) => {
   // make a storage deposit
   const despositCall = await callContractMethod(
@@ -16,7 +16,7 @@ export const listThenTransferToInvalidate = async (
     "deposit_storage",
     {},
     MAX_GAS,
-    nearToYocto("0.01")
+    nearToYocto("0.01"),
   );
 
   // call approve to list the token
@@ -30,7 +30,7 @@ export const listThenTransferToInvalidate = async (
       msg: JSON.stringify({ price: nearToYocto("0.5") }),
     },
     MAX_GAS,
-    nearToYocto("0.008")
+    nearToYocto("0.008"),
   );
 
   const transferCallResult = await callContractMethod(
@@ -42,7 +42,7 @@ export const listThenTransferToInvalidate = async (
       receiver_id: transfer_to.accountId,
     },
     MAX_GAS,
-    "1"
+    "1",
   );
 
   return {

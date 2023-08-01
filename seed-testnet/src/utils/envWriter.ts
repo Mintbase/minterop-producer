@@ -24,7 +24,7 @@ export class EnvWriter {
   private findAndSubstituteInEnv = (
     key: string,
     value: string,
-    envVars: string[]
+    envVars: string[],
   ) => {
     const targetLine = envVars.find((line) => line.split("=")[0] === key);
     if (targetLine !== undefined) {
