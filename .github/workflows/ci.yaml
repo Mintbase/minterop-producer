@@ -65,7 +65,8 @@ jobs:
 
       - name: Smoke tests
         run: |
-          echo "IMAGE_CACHE_BASE_URL=${{ secrets.IMAGE_CACHE_BASE_URL }}" > .env
+          echo "IMAGE_CACHE_BASE_URL=${{ secrets.IMAGE_CACHE_BASE_URL }}" >> .env
+          echo "PARAS_MARKET_ID=marketplace.paras.near" >> .env
           scripts/run-tests.sh
 
       - name: Dump docker logs on failure
