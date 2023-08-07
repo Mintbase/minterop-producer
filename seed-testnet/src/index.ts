@@ -57,21 +57,21 @@ async function main() {
   const transferResult = await simpleTransfer(
     alice, // from
     carol, // to
-    tokenToTransfer
+    tokenToTransfer,
   );
 
   // simple list and sale
   const saleResult = await simpleListAndSale(
     alice, // seller
     bob, // buyer
-    tokenForSale
+    tokenForSale,
   );
 
   // list then transfer after to invalidate
   const listThenTransferResult = await listThenTransferToInvalidate(
     alice,
     carol,
-    tokenToListThenTransfer
+    tokenToListThenTransfer,
   );
 
   // auction listing
@@ -79,7 +79,7 @@ async function main() {
     alice,
     bob,
     carol,
-    tokenToAuction
+    tokenToAuction,
   );
 
   // simple burn of a token
@@ -93,7 +93,7 @@ async function main() {
   const listAndPurchaseParasResult = await parasListAndSale(
     bob,
     carol,
-    parasToken[0]
+    parasToken[0],
   );
 
   const stopBlockHeight = await fetchCurrentBlockHeight();

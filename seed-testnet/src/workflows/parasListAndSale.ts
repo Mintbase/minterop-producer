@@ -7,7 +7,7 @@ const nearToYocto = utils.format.parseNearAmount;
 export const parasListAndSale = async (
   lister: Account,
   buyer: Account,
-  tokenId: string
+  tokenId: string,
 ) => {
   // in this workflow, the minting happens on paras (see paras.ts for utils there
 
@@ -18,7 +18,7 @@ export const parasListAndSale = async (
     "deposit_storage",
     {},
     MAX_GAS,
-    nearToYocto("0.01")
+    nearToYocto("0.01"),
   );
 
   // call approve to list the token
@@ -32,7 +32,7 @@ export const parasListAndSale = async (
       msg: JSON.stringify({ price: nearToYocto("0.5") }),
     },
     MAX_GAS,
-    nearToYocto("0.008")
+    nearToYocto("0.008"),
   );
 
   const purchaseCall = await callContractMethod(
@@ -44,7 +44,7 @@ export const parasListAndSale = async (
       token_id: tokenId,
     },
     MAX_GAS,
-    nearToYocto("0.6")
+    nearToYocto("0.6"),
   );
 
   return {

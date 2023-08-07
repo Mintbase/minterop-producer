@@ -26,7 +26,7 @@ export const callContractMethod = async (
   methodName: string,
   args: any,
   gas: string = MAX_GAS,
-  attachedDeposit: string | null = ONE_NEAR
+  attachedDeposit: string | null = ONE_NEAR,
 ): Promise<EventLog[]> => {
   const result = await account.functionCall({
     contractId,
@@ -45,7 +45,7 @@ export const callContractMethod = async (
   } catch (err: unknown) {
     console.info(
       `Contract call ${contractId}.${methodName} result produced no parsable logs`,
-      err
+      err,
     );
     return [];
   }
@@ -55,7 +55,7 @@ export const mintTokensWithAccount = async (
   account: Account,
   numTokens = 1,
   contractId: string = DEFAULT_STORE_CONTRACT,
-  method = "nft_batch_mint"
+  method = "nft_batch_mint",
 ): Promise<string[]> => {
   const result = await callContractMethod(account, contractId, method, {
     owner_id: account.accountId,

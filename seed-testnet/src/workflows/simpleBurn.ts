@@ -7,7 +7,7 @@ const nearToYocto = utils.format.parseNearAmount;
 export const simpleBurn = async (
   account: Account,
   tokenIds: string[],
-  method = "nft_batch_burn"
+  method = "nft_batch_burn",
 ): Promise<any> => {
   const burnCall = await callContractMethod(
     account,
@@ -17,7 +17,7 @@ export const simpleBurn = async (
       token_ids: tokenIds,
     },
     MAX_GAS,
-    "1"
+    "1",
   );
   return {
     burnCall,

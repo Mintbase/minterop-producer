@@ -5,7 +5,7 @@ import { DEFAULT_STORE_CONTRACT, MAX_GAS } from "../constants";
 export const simpleTransfer = async (
   from: Account,
   to: Account,
-  tokenId: string
+  tokenId: string,
 ) => {
   const transferCallResult = await callContractMethod(
     from,
@@ -16,7 +16,7 @@ export const simpleTransfer = async (
       receiver_id: to.accountId,
     },
     MAX_GAS,
-    "1"
+    "1",
   );
 
   return {
