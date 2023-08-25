@@ -1,5 +1,6 @@
 crate::forward_mod!(nft_list);
 crate::forward_mod!(nft_unlist);
+crate::forward_mod!(nft_failed_listing);
 crate::forward_mod!(nft_sale);
 crate::forward_mod!(nft_sale_v022);
 crate::forward_mod!(nft_make_offer);
