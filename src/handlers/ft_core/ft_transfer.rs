@@ -36,21 +36,11 @@ async fn handle_ft_transfer_log(
     // TODO: join in RPC call? -> would require `on_conflict`
     future::join(
         insert_ft_tokens(rt.clone(), tx.clone(), log.clone()),
-        insert_ft_activities(rt.clone(), tx.clone(), log.clone())
+        insert_ft_activities(rt.clone(), tx.clone(), log.clone()),
     )
     .await;
 
-    // Async block prevents runtime borrow from being invalidated
-    #[allow(clippy::redundant_async_block)]
-    actix_rt::spawn(async move {
-        rt.minterop_rpc
-            .token(
-                tx.receiver.clone(),
-                log.token_ids,
-                Some(tx.sender.to_string()),
-            )
-            .await
-    });
+    // TODO: RPC call for FT metadata
 }
 
 async fn insert_ft_tokens(
@@ -60,21 +50,33 @@ async fn insert_ft_tokens(
 ) {
     use minterop_data::schema::ft_balances::dsl;
 
-    let tokens = FtBalance {
-            ft_contract_id: tx.receiver.to_string(),
-            owner: log.new_owner_id.clone(),
-            amount: log.amount.clone(),
-        };
+    let amount = pg_numeric(log.amount.0);
 
-    diesel::insert_into(ft_balances::table)
-        .values(tokens)
-        .on_conflict(diesel::pg::upsert::on_constraint("ft_tokens_pkey"))
-        .do_update()
-        .set((
-            dsl::owner.eq(log.new_owner_id.clone()),
-        ))
-        .execute_db(&rt.pg_connection, &tx, "insert tokens on transfer")
-        .await
+    let receiver_balance = FtBalance {
+        ft_contract_id: tx.receiver.to_string(),
+        owner: log.new_owner_id.clone(),
+        amount: amount.clone(),
+    };
+
+    future::join(
+        // update balance for FT receiver
+        diesel::insert_into(ft_balances::table)
+            .values(receiver_balance)
+            .on_conflict(diesel::pg::upsert::on_constraint("ft_tokens_pkey"))
+            .do_update()
+            .set(dsl::amount.eq(dsl::amount + amount.clone()))
+            .execute_db(
+                &rt.pg_connection,
+                &tx,
+                "update FT balance for receiver",
+            ),
+        // update balance for FT sender
+        diesel::update(ft_balances::table)
+            .filter(dsl::owner.eq(log.old_owner_id))
+            .set(dsl::amount.eq(dsl::amount - amount))
+            .execute_db(&rt.pg_connection, &tx, "update FT balance for sender"),
+    )
+    .await;
 }
 
 async fn insert_ft_activities(
@@ -90,9 +92,8 @@ async fn insert_ft_activities(
         action_sender: log.old_owner_id.clone(),
         action_receiver: Some(log.new_owner_id.clone()),
         memo: None,
-        amount: log.amount.clone(),
+        amount: pg_numeric(log.amount.0),
     };
-
 
     diesel::insert_into(ft_activities::table)
         .values(activities)

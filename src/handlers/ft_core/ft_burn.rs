@@ -47,20 +47,21 @@ async fn insert_ft_tokens(
 ) {
     use minterop_data::schema::ft_balances::dsl;
 
-    let tokens = FtBalance {
-            ft_contract_id: tx.receiver.to_string(),
-            owner: tx.sender.to_string(),
-            amount: log.amount.clone(),
-        };
+    let amount = pg_numeric(log.amount.0);
 
-    diesel::insert_into(ft_tokens::table)
+    let tokens = FtBalance {
+        ft_contract_id: tx.receiver.to_string(),
+        owner: tx.sender.to_string(),
+        amount: amount.clone(),
+    };
+
+    // In theory, this should only ever be an update, but you never know how
+    // people are writing their smart contracts, so we will keep the upsert
+    diesel::insert_into(ft_balances::table)
         .values(tokens)
         .on_conflict(diesel::pg::upsert::on_constraint("ft_tokens_pkey"))
         .do_update()
-        .set((
-            dsl::burned_timestamp.eq(tx.timestamp),
-            dsl::burned_receipt_id.eq(tx.id.clone()),
-        ))
+        .set(dsl::amount.eq(dsl::amount - amount))
         .execute_db(&rt.pg_connection, &tx, "insert token on transfer")
         .await
 }
@@ -71,19 +72,18 @@ async fn insert_ft_activities(
     log: FtBurnLog,
 ) {
     let activities = FtActivity {
-            receipt_id: tx.id.clone(),
-            timestamp: tx.timestamp,
-            ft_contract_id: tx.receiver.to_string(),
-            kind: NFT_ACTIVITY_KIND_BURN.to_string(),
-            action_sender: tx.sender.to_string(),
-            action_receiver: None,
-            memo: None,
-            amount: log.amount.clone(),
-        };
+        receipt_id: tx.id.clone(),
+        timestamp: tx.timestamp,
+        ft_contract_id: tx.receiver.to_string(),
+        kind: NFT_ACTIVITY_KIND_BURN.to_string(),
+        action_sender: tx.sender.to_string(),
+        action_receiver: None,
+        memo: None,
+        amount: pg_numeric(log.amount.0),
+    };
 
     diesel::insert_into(ft_activities::table)
         .values(activities)
         .execute_db(&rt.pg_connection, &tx, "insert activity on mint")
         .await
 }
-

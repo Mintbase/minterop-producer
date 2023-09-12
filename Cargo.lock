@@ -1746,7 +1746,7 @@ dependencies = [
 [[package]]
 name = "mb-sdk"
 version = "0.1.0"
-source = "git+https://github.com/Mintbase/mb-sdk.git?rev=bd8f7097d4e47bbf0429b5185ea083653a7d993d#bd8f7097d4e47bbf0429b5185ea083653a7d993d"
+source = "git+https://github.com/Mintbase/mb-sdk.git?rev=a77697ed746e8c8098d139a596d3cfa25905ee25#a77697ed746e8c8098d139a596d3cfa25905ee25"
 dependencies = [
  "near-sdk",
  "near_events",
