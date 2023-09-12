@@ -132,11 +132,12 @@ impl MintlakeRuntime {
         }
 
         // async execution of all transactions in a block
-        let handles = msg
+        let shards = msg
             .shards
             .into_iter()
-            .filter(|shard| shard.chunk.is_some())
-            .flat_map(|shard| shard.receipt_execution_outcomes)
+            .filter(|shard| shard.chunk.is_some());
+
+        let handles = shards.flat_map(|shard| shard.receipt_execution_outcomes)
             .filter_map(|tx| filter_and_split_receipt(&msg.block.header, tx))
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
@@ -283,6 +284,16 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
         ("nep171", "1.1.0", "nft_metadata_update")
         | ("nep171", "1.2.0", "nft_metadata_update") => {
             handle_nft_metadata_update(rt, &tx, data).await
+        }
+        // ----- ft_core -----
+        ("nep141", "1.0.0", "ft_mint") => {
+            handle_ft_mint(rt, &tx, data).await
+        }
+        ("nep141", "1.0.0", "ft_transfer") => {
+            handle_ft_transfer(rt, &tx, data).await
+        }
+        ("nep141", "1.0.0", "ft_burn") => {
+            handle_ft_burn(rt, &tx, data).await
         }
         // ------------ nft_approvals
         ("mb_store", "0.1.0", "nft_approve") => {
