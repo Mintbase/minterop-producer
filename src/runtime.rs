@@ -1,6 +1,9 @@
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
-    views::BlockHeaderView,
+    views::{
+        BlockHeaderView,
+        StateChangeWithCauseView,
+    },
     IndexerExecutionOutcomeWithReceipt,
     StreamerMessage,
 };
@@ -132,13 +135,39 @@ impl MintlakeRuntime {
         }
 
         // async execution of all transactions in a block
-        let shards = msg
-            .shards
-            .into_iter()
-            .filter(|shard| shard.chunk.is_some());
+        let shards =
+            msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
 
-        let handles = shards.flat_map(|shard| shard.receipt_execution_outcomes)
-            .filter_map(|tx| filter_and_split_receipt(&msg.block.header, tx))
+        let mut log_data = Vec::new();
+        let mut key_data = Vec::new();
+        for shard in shards {
+            shard
+                .state_changes
+                .into_iter()
+                .filter_map(|state_change| match state_change.value {
+                    // TODO: account creation deletion separately?
+                    v @ StateChangeValueView::AccessKeyUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccessKeyDeletion { .. } => {
+                        Some(v)
+                    }
+                    _ => None,
+                })
+                .for_each(|state_change_value| {
+                    key_data.push(state_change_value)
+                });
+
+            // extract logs
+            shard
+                .receipt_execution_outcomes
+                .into_iter()
+                .filter_map(|tx| {
+                    filter_and_split_receipt(&msg.block.header, tx)
+                })
+                .for_each(|(tx, logs)| log_data.push((tx, logs)));
+        }
+
+        let log_handles = log_data
+            .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
                 // establish a new connection on every transaction. That's what
@@ -149,8 +178,11 @@ impl MintlakeRuntime {
             })
             .collect::<Vec<_>>();
 
+        // TODO: key change processing
+        let key_handles = key_data;
+
         // make sure that everything processed fine
-        for handle in handles {
+        for handle in log_handles {
             handle.await.handle_err(|e| {
                 crate::error!(
                     "Could not join async handle at block height {}: {:?}",
@@ -159,12 +191,14 @@ impl MintlakeRuntime {
                 )
             });
         }
+        // TODO: await key handles, optimally in parallel iwth log handles
 
         update_db_blockheight(&self.pg_connection, height).await;
         height
     }
 
     /// The same as `handle_msg_unfiltered, but applies `
+    // FIXME: apply same changes as in unfiltered case
     async fn handle_msg_filtered(
         &self,
         msg: StreamerMessage,
@@ -286,15 +320,11 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
             handle_nft_metadata_update(rt, &tx, data).await
         }
         // ----- ft_core -----
-        ("nep141", "1.0.0", "ft_mint") => {
-            handle_ft_mint(rt, &tx, data).await
-        }
+        ("nep141", "1.0.0", "ft_mint") => handle_ft_mint(rt, &tx, data).await,
         ("nep141", "1.0.0", "ft_transfer") => {
             handle_ft_transfer(rt, &tx, data).await
         }
-        ("nep141", "1.0.0", "ft_burn") => {
-            handle_ft_burn(rt, &tx, data).await
-        }
+        ("nep141", "1.0.0", "ft_burn") => handle_ft_burn(rt, &tx, data).await,
         // ------------ nft_approvals
         ("mb_store", "0.1.0", "nft_approve") => {
             handle_nft_approve(rt, &tx, data).await
