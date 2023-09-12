@@ -59,10 +59,10 @@ async fn insert_ft_tokens(
     // people are writing their smart contracts, so we will keep the upsert
     diesel::insert_into(ft_balances::table)
         .values(tokens)
-        .on_conflict(diesel::pg::upsert::on_constraint("ft_tokens_pkey"))
+        .on_conflict(diesel::pg::upsert::on_constraint("ft_balances_pkey"))
         .do_update()
         .set(dsl::amount.eq(dsl::amount - amount))
-        .execute_db(&rt.pg_connection, &tx, "insert token on transfer")
+        .execute_db(&rt.pg_connection, &tx, "upsert FT balance on burn")
         .await
 }
 

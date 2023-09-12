@@ -46,16 +46,22 @@ async fn insert_ft_tokens(
     tx: ReceiptData,
     log: FtMintLog,
 ) {
+    use minterop_data::schema::ft_balances::dsl;
+
+    let amount = pg_numeric(log.amount.0);
+
     let tokens = FtBalance {
         ft_contract_id: tx.receiver.to_string(),
         owner: log.owner_id.clone(),
-        amount: pg_numeric(log.amount.0),
+        amount: amount.clone(),
     };
 
-    // TODO: handle update case
     diesel::insert_into(ft_balances::table)
         .values(tokens)
-        .execute_db(&rt.pg_connection, &tx, "insert token on mint")
+        .on_conflict(diesel::pg::upsert::on_constraint("ft_balances_pkey"))
+        .do_update()
+        .set(dsl::amount.eq(dsl::amount + amount))
+        .execute_db(&rt.pg_connection, &tx, "upsert FT balance on mint")
         .await
 }
 

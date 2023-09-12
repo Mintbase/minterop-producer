@@ -62,7 +62,7 @@ async fn insert_ft_tokens(
         // update balance for FT receiver
         diesel::insert_into(ft_balances::table)
             .values(receiver_balance)
-            .on_conflict(diesel::pg::upsert::on_constraint("ft_tokens_pkey"))
+            .on_conflict(diesel::pg::upsert::on_constraint("ft_balances_pkey"))
             .do_update()
             .set(dsl::amount.eq(dsl::amount + amount.clone()))
             .execute_db(
