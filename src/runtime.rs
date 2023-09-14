@@ -139,21 +139,23 @@ impl MintlakeRuntime {
             msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
 
         let mut log_data = Vec::new();
-        let mut key_data = Vec::new();
+        let mut state_changes = Vec::new();
         for shard in shards {
             shard
                 .state_changes
                 .into_iter()
                 .filter_map(|state_change| match state_change.value {
-                    // TODO: account creation deletion separately?
+                    // TODO: account creation/deletion separately?
                     v @ StateChangeValueView::AccessKeyUpdate { .. } => Some(v),
                     v @ StateChangeValueView::AccessKeyDeletion { .. } => {
                         Some(v)
                     }
+                    v @ StateChangeValueView::AccountUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccountDeletion { .. } => Some(v),
                     _ => None,
                 })
                 .for_each(|state_change_value| {
-                    key_data.push(state_change_value)
+                    state_changes.push(state_change_value)
                 });
 
             // extract logs
@@ -179,7 +181,7 @@ impl MintlakeRuntime {
             .collect::<Vec<_>>();
 
         // TODO: key change processing
-        let key_handles = key_data;
+        let state_changes_handles = state_changes;
 
         // make sure that everything processed fine
         for handle in log_handles {
