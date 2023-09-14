@@ -1,9 +1,6 @@
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
-    views::{
-        BlockHeaderView,
-        StateChangeValueView,
-    },
+    views::StateChangeValueView,
     IndexerExecutionOutcomeWithReceipt,
     StreamerMessage,
 };
@@ -133,6 +130,9 @@ impl MintlakeRuntime {
             crate::info!("Processing block {}", height);
         }
 
+        let timestamp =
+            crate::nsecs_to_timestamp(msg.block.header.timestamp_nanosec);
+
         // async execution of all transactions in a block
         let shards =
             msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
@@ -145,7 +145,6 @@ impl MintlakeRuntime {
                 .state_changes
                 .into_iter()
                 .filter_map(|state_change| match state_change.value {
-                    // TODO: account creation/deletion separately?
                     v @ StateChangeValueView::AccessKeyUpdate { .. } => Some(v),
                     v @ StateChangeValueView::AccessKeyDeletion { .. } => {
                         Some(v)
@@ -164,11 +163,11 @@ impl MintlakeRuntime {
                 .filter(|tx| is_success(tx))
             {
                 if let Some(mut near_transfers) =
-                    get_near_transfers(&msg.block.header, &tx)
+                    get_near_transfers(timestamp, &tx)
                 {
                     near_transfer_data.append(&mut near_transfers);
                 } else if let Some((tx, logs)) =
-                    filter_and_split_receipt(&msg.block.header, tx)
+                    filter_and_split_receipt(timestamp, tx)
                 {
                     log_data.push((tx, logs));
                 }
@@ -217,10 +216,12 @@ impl MintlakeRuntime {
         filter: &[String],
     ) -> u64 {
         let height = msg.block.header.height;
-
         if height % 10 == 0 {
             crate::info!("Processing block {}", height);
         }
+
+        let timestamp =
+            crate::nsecs_to_timestamp(msg.block.header.timestamp_nanosec);
 
         // async execution of all transactions in a block
         let handles = msg
@@ -228,7 +229,7 @@ impl MintlakeRuntime {
             .into_iter()
             .filter(|shard| shard.chunk.is_some())
             .flat_map(|shard| shard.receipt_execution_outcomes)
-            .filter_map(|tx| filter_and_split_receipt(&msg.block.header, tx))
+            .filter_map(|tx| filter_and_split_receipt(timestamp, tx))
             .filter_map(|(tx, logs)| {
                 if filter.contains(&tx.receiver.to_string()) {
                     Some((tx, logs))
@@ -429,7 +430,7 @@ pub(crate) struct ReceiptData {
 // This function assumes that the success status has already been checked. If
 // failed to check this beforehand, invalid logs will be indexed.
 fn filter_and_split_receipt(
-    header: &BlockHeaderView,
+    timestamp: chrono::NaiveDateTime,
     tx: IndexerExecutionOutcomeWithReceipt,
 ) -> Option<(ReceiptData, Vec<String>)> {
     use near_lake_framework::near_indexer_primitives::views;
@@ -448,8 +449,7 @@ fn filter_and_split_receipt(
                     _ => None,
                 },
                 receiver: tx.receipt.receiver_id,
-                timestamp: crate::nsecs_to_timestamp(header.timestamp_nanosec),
-                // block_height: header.height,
+                timestamp,
             },
             tx.execution_outcome.outcome.logs,
         )),
@@ -508,7 +508,7 @@ struct NearTransfer {
 // This function assumes that the success status has already been checked. If
 // failed to check this beforehand, invalid transfers will be indexed.
 fn get_near_transfers(
-    header: &BlockHeaderView,
+    timestamp: chrono::NaiveDateTime,
     tx: &IndexerExecutionOutcomeWithReceipt,
 ) -> Option<Vec<NearTransfer>> {
     use near_lake_framework::near_indexer_primitives::views::{
@@ -539,9 +539,7 @@ fn get_near_transfers(
                             sender_id: tx.receipt.predecessor_id.clone(),
                             receiver_id: tx.receipt.receiver_id.clone(),
                             amount: *deposit,
-                            timestamp: crate::nsecs_to_timestamp(
-                                header.timestamp_nanosec,
-                            ),
+                            timestamp: timestamp,
                             receipt_id: tx.receipt.receipt_id.to_string(),
                         });
                     }
@@ -556,9 +554,3 @@ fn get_near_transfers(
         _ => None,
     }
 }
-
-// TODO:
-// - [x] remove status checking from `filter_and_split_receipt`
-// - [x] check status in loop instead and do it early
-// - [x] try to parse near transfers first, if that fails try to extract logs
-// - [ ] central place for converting/passing down timestamps
