@@ -2,7 +2,7 @@ use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
     views::{
         BlockHeaderView,
-        StateChangeWithCauseView,
+        StateChangeValueView,
     },
     IndexerExecutionOutcomeWithReceipt,
     StreamerMessage,
@@ -129,7 +129,6 @@ impl MintlakeRuntime {
     /// and have logs, and then spawn tasks that process them asynchronously.
     async fn handle_msg_unfiltered(&self, msg: StreamerMessage) -> u64 {
         let height = msg.block.header.height;
-
         if height % 10 == 0 {
             crate::info!("Processing block {}", height);
         }
@@ -138,8 +137,9 @@ impl MintlakeRuntime {
         let shards =
             msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
 
+        let mut state_change_data = Vec::new();
+        let mut near_transfer_data = Vec::new();
         let mut log_data = Vec::new();
-        let mut state_changes = Vec::new();
         for shard in shards {
             shard
                 .state_changes
@@ -155,17 +155,24 @@ impl MintlakeRuntime {
                     _ => None,
                 })
                 .for_each(|state_change_value| {
-                    state_changes.push(state_change_value)
+                    state_change_data.push(state_change_value)
                 });
 
-            // extract logs
-            shard
+            for tx in shard
                 .receipt_execution_outcomes
                 .into_iter()
-                .filter_map(|tx| {
+                .filter(|tx| is_success(tx))
+            {
+                if let Some(mut near_transfers) =
+                    get_near_transfers(&msg.block.header, &tx)
+                {
+                    near_transfer_data.append(&mut near_transfers);
+                } else if let Some((tx, logs)) =
                     filter_and_split_receipt(&msg.block.header, tx)
-                })
-                .for_each(|(tx, logs)| log_data.push((tx, logs)));
+                {
+                    log_data.push((tx, logs));
+                }
+            }
         }
 
         let log_handles = log_data
@@ -180,8 +187,10 @@ impl MintlakeRuntime {
             })
             .collect::<Vec<_>>();
 
-        // TODO: key change processing
-        let state_changes_handles = state_changes;
+        // TODO: state change processing
+        let state_changes_handles = state_change_data;
+        // TODO: near_transfer processing
+        let near_transfer_handles = near_transfer_data;
 
         // make sure that everything processed fine
         for handle in log_handles {
@@ -193,7 +202,8 @@ impl MintlakeRuntime {
                 )
             });
         }
-        // TODO: await key handles, optimally in parallel iwth log handles
+        // TODO: await state change handles, optimally in parallel iwth log handles
+        // TODO: await near transfer handles, optimally in parallel iwth log handles
 
         update_db_blockheight(&self.pg_connection, height).await;
         height
@@ -416,39 +426,33 @@ pub(crate) struct ReceiptData {
     // pub(crate) block_height: u64,
 }
 
+// This function assumes that the success status has already been checked. If
+// failed to check this beforehand, invalid logs will be indexed.
 fn filter_and_split_receipt(
     header: &BlockHeaderView,
     tx: IndexerExecutionOutcomeWithReceipt,
 ) -> Option<(ReceiptData, Vec<String>)> {
     use near_lake_framework::near_indexer_primitives::views;
 
-    // check for tx success
-    match tx.execution_outcome.outcome.status {
-        views::ExecutionStatusView::Unknown => None,
-        views::ExecutionStatusView::Failure(_) => None,
-        // check if we have any logs
-        _ => match tx.execution_outcome.outcome.logs.len() {
-            0 => None,
-            _ => Some((
-                ReceiptData {
-                    id: tx.receipt.receipt_id.to_string(),
-                    sender: tx.receipt.predecessor_id,
-                    sender_pk: match tx.receipt.receipt {
-                        views::ReceiptEnumView::Action {
-                            signer_public_key,
-                            ..
-                        } => Some(signer_public_key.to_string()),
-                        _ => None,
-                    },
-                    receiver: tx.receipt.receiver_id,
-                    timestamp: crate::nsecs_to_timestamp(
-                        header.timestamp_nanosec,
-                    ),
-                    // block_height: header.height,
+    match tx.execution_outcome.outcome.logs.len() {
+        0 => None,
+        _ => Some((
+            ReceiptData {
+                id: tx.receipt.receipt_id.to_string(),
+                sender: tx.receipt.predecessor_id,
+                sender_pk: match tx.receipt.receipt {
+                    views::ReceiptEnumView::Action {
+                        signer_public_key,
+                        ..
+                    } => Some(signer_public_key.to_string()),
+                    _ => None,
                 },
-                tx.execution_outcome.outcome.logs,
-            )),
-        },
+                receiver: tx.receipt.receiver_id,
+                timestamp: crate::nsecs_to_timestamp(header.timestamp_nanosec),
+                // block_height: header.height,
+            },
+            tx.execution_outcome.outcome.logs,
+        )),
     }
 }
 
@@ -482,3 +486,79 @@ fn sanitize_event(
 
     (nep, version, event, data)
 }
+
+fn is_success(tx: &IndexerExecutionOutcomeWithReceipt) -> bool {
+    use near_lake_framework::near_indexer_primitives::views::ExecutionStatusView;
+
+    match tx.execution_outcome.outcome.status {
+        ExecutionStatusView::Failure(_) => false,
+        ExecutionStatusView::Unknown => false,
+        _ => true,
+    }
+}
+
+struct NearTransfer {
+    sender_id: AccountId,
+    receiver_id: AccountId,
+    amount: u128,
+    timestamp: chrono::NaiveDateTime,
+    receipt_id: String,
+}
+
+// This function assumes that the success status has already been checked. If
+// failed to check this beforehand, invalid transfers will be indexed.
+fn get_near_transfers(
+    header: &BlockHeaderView,
+    tx: &IndexerExecutionOutcomeWithReceipt,
+) -> Option<Vec<NearTransfer>> {
+    use near_lake_framework::near_indexer_primitives::views::{
+        ActionView,
+        ReceiptEnumView,
+    };
+
+    match &tx.receipt.receipt {
+        // TODO: double check that this actually contains the receipt ID
+        // and we are not dropping transfers here. This is probably a redundant
+        // consistency check
+        _ if !tx
+            .execution_outcome
+            .outcome
+            .receipt_ids
+            .contains(&tx.receipt.receipt_id) =>
+        {
+            None
+        }
+        // only action views contain NEAR transfers
+        ReceiptEnumView::Action { actions, .. } => {
+            // TODO: can this be more than one?
+            let mut transfers = Vec::new();
+            for action in actions {
+                match action {
+                    ActionView::Transfer { deposit } => {
+                        transfers.push(NearTransfer {
+                            sender_id: tx.receipt.predecessor_id.clone(),
+                            receiver_id: tx.receipt.receiver_id.clone(),
+                            amount: *deposit,
+                            timestamp: crate::nsecs_to_timestamp(
+                                header.timestamp_nanosec,
+                            ),
+                            receipt_id: tx.receipt.receipt_id.to_string(),
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            match transfers.len() {
+                0 => None,
+                _ => Some(transfers),
+            }
+        }
+        _ => None,
+    }
+}
+
+// TODO:
+// - [x] remove status checking from `filter_and_split_receipt`
+// - [x] check status in loop instead and do it early
+// - [x] try to parse near transfers first, if that fails try to extract logs
+// - [ ] central place for converting/passing down timestamps
