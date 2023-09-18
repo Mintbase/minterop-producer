@@ -7,6 +7,10 @@ use near_lake_framework::near_indexer_primitives::{
 
 use crate::{
     database::DbConnPool,
+    handlers::{
+        handle_access_key_deletion,
+        handle_access_key_update,
+    },
     logging::HandleErr,
     rpc_connection::MinteropRpcConnector,
     LakeStreamer,
@@ -174,7 +178,8 @@ impl MintlakeRuntime {
             }
         }
 
-        let log_handles = log_data
+        // log processing
+        let mut handles = log_data
             .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
@@ -186,13 +191,23 @@ impl MintlakeRuntime {
             })
             .collect::<Vec<_>>();
 
-        // TODO: state change processing
-        let state_changes_handles = state_change_data;
+        // state change processing
+        handles.append(
+            &mut state_change_data
+                .into_iter()
+                .map(|state_change| {
+                    let rt = self.tx_processing_runtime();
+                    actix_rt::spawn(async move {
+                        handle_state_change(&rt, timestamp, state_change).await
+                    })
+                })
+                .collect::<Vec<_>>(),
+        );
         // TODO: near_transfer processing
         let near_transfer_handles = near_transfer_data;
 
         // make sure that everything processed fine
-        for handle in log_handles {
+        for handle in handles {
             handle.await.handle_err(|e| {
                 crate::error!(
                     "Could not join async handle at block height {}: {:?}",
@@ -269,6 +284,22 @@ impl MintlakeRuntime {
             mintbase_root: self.mintbase_root.clone(),
             paras_marketplace_id: self.paras_marketplace_id.clone(),
         }
+    }
+}
+
+async fn handle_state_change(
+    rt: &TxProcessingRuntime,
+    timestamp: chrono::NaiveDateTime,
+    state_change: StateChangeValueView,
+) {
+    match state_change {
+        sc @ StateChangeValueView::AccessKeyUpdate { .. } => {
+            handle_access_key_update(rt, timestamp, sc).await
+        }
+        sc @ StateChangeValueView::AccessKeyDeletion { .. } => {
+            handle_access_key_deletion(rt, timestamp, sc).await
+        }
+        _ => {}
     }
 }
 

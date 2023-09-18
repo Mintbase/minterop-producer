@@ -1,23 +1,20 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use chrono::NaiveDateTime;
-use diesel::sql_types::Jsonb;
-use near_lake_framework::near_indexer_primitives::{
-    types::AccountId,
-    views::{
-        AccessKeyPermissionView,
-        AccessKeyView,
-        StateChangeValueView,
-    },
+use near_lake_framework::near_indexer_primitives::views::{
+    AccessKeyPermissionView,
+    StateChangeValueView,
 };
 
-use crate::handlers::prelude::*;
+use crate::{
+    handlers::prelude::*,
+    logging::HandleErr,
+};
 
 pub(crate) async fn handle_access_key_update(
-    state_change_value: StateChangeValueView,
+    rt: &TxProcessingRuntime,
     timestamp: NaiveDateTime,
-    rt: TxProcessingRuntime,
+    state_change_value: StateChangeValueView,
 ) {
-    use minterop_data::schema::access_keys::dsl;
     let key_update: AccessKey = match state_change_value {
         StateChangeValueView::AccessKeyUpdate {
             account_id,
@@ -49,5 +46,8 @@ pub(crate) async fn handle_access_key_update(
     let _ = diesel::insert_into(access_keys::table)
         .values(key_update)
         .execute_async(&rt.pg_connection)
-        .await;
+        .await
+        .handle_err(|err| {
+            crate::error!("Failed to update access_key: {:?}", err)
+        });
 }

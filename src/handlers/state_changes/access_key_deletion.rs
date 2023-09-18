@@ -1,31 +1,37 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use chrono::NaiveDateTime;
-use diesel::sql_types::Jsonb;
-use near_lake_framework::near_indexer_primitives::{
-    types::AccountId,
-    views::{
-        AccessKeyPermissionView,
-        AccessKeyView,
-        StateChangeValueView,
-    },
+use near_lake_framework::near_indexer_primitives::views::StateChangeValueView;
+
+use crate::{
+    handlers::prelude::*,
+    logging::HandleErr,
 };
 
-use crate::handlers::prelude::*;
-
 pub(crate) async fn handle_access_key_deletion(
-    state_change_value: StateChangeValueView,
+    rt: &TxProcessingRuntime,
     timestamp: NaiveDateTime,
-    rt: TxProcessingRuntime,
+    state_change_value: StateChangeValueView,
 ) {
     use minterop_data::schema::access_keys::dsl;
     match state_change_value {
         StateChangeValueView::AccessKeyDeletion {
             account_id,
-            public_key
+            public_key,
         } => diesel::update(access_keys::table)
             .filter(dsl::account_id.eq(account_id.to_string()))
+            .filter(dsl::public_key.eq(public_key.to_string()))
+            .filter(dsl::created_at.is_null())
             .set(dsl::removed_at.eq(timestamp))
-            .execute_async(&rt.pg_connection),
+            .execute_async(&rt.pg_connection)
+            .await
+            .map(|updated| {
+                if updated != 1 {
+                    crate::error!(
+                        "Expected to update 1 row, updated {} instead.(account_id: {}, public_key: {} timestamp: {})",
+                        updated, account_id.as_str(), public_key.to_string(), timestamp
+                    );
+                }
+            }).handle_err(|err|{crate::error!("Failed to delete access_key: {:?}", err)}),
         _ => {
             crate::warn!("Could not handle access key deletion.");
             return;
