@@ -7,10 +7,6 @@ use near_lake_framework::near_indexer_primitives::{
 
 use crate::{
     database::DbConnPool,
-    handlers::{
-        handle_access_key_deletion,
-        handle_access_key_update,
-    },
     logging::HandleErr,
     rpc_connection::MinteropRpcConnector,
     LakeStreamer,
@@ -142,7 +138,6 @@ impl MintlakeRuntime {
             msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
 
         let mut state_change_data = Vec::new();
-        let mut near_transfer_data = Vec::new();
         let mut log_data = Vec::new();
         for shard in shards {
             shard
@@ -164,13 +159,9 @@ impl MintlakeRuntime {
             for tx in shard
                 .receipt_execution_outcomes
                 .into_iter()
-                .filter(|tx| is_success(tx))
+                .filter(is_success)
             {
-                if let Some(mut near_transfers) =
-                    get_near_transfers(timestamp, &tx)
-                {
-                    near_transfer_data.append(&mut near_transfers);
-                } else if let Some((tx, logs)) =
+                if let Some((tx, logs)) =
                     filter_and_split_receipt(timestamp, tx)
                 {
                     log_data.push((tx, logs));
@@ -197,15 +188,13 @@ impl MintlakeRuntime {
                 .into_iter()
                 .map(|state_change| {
                     let rt = self.tx_processing_runtime();
+                    #[allow(clippy::redundant_async_block)]
                     actix_rt::spawn(async move {
                         handle_state_change(&rt, timestamp, state_change).await
                     })
                 })
                 .collect::<Vec<_>>(),
         );
-        // TODO: near_transfer processing
-        let near_transfer_handles = near_transfer_data;
-
         // make sure that everything processed fine
         for handle in handles {
             handle.await.handle_err(|e| {
@@ -216,15 +205,12 @@ impl MintlakeRuntime {
                 )
             });
         }
-        // TODO: await state change handles, optimally in parallel iwth log handles
-        // TODO: await near transfer handles, optimally in parallel iwth log handles
 
         update_db_blockheight(&self.pg_connection, height).await;
         height
     }
 
     /// The same as `handle_msg_unfiltered, but applies `
-    // FIXME: apply same changes as in unfiltered case
     async fn handle_msg_filtered(
         &self,
         msg: StreamerMessage,
@@ -239,19 +225,47 @@ impl MintlakeRuntime {
             crate::nsecs_to_timestamp(msg.block.header.timestamp_nanosec);
 
         // async execution of all transactions in a block
-        let handles = msg
-            .shards
-            .into_iter()
-            .filter(|shard| shard.chunk.is_some())
-            .flat_map(|shard| shard.receipt_execution_outcomes)
-            .filter_map(|tx| filter_and_split_receipt(timestamp, tx))
-            .filter_map(|(tx, logs)| {
-                if filter.contains(&tx.receiver.to_string()) {
-                    Some((tx, logs))
-                } else {
-                    None
+        let shards =
+            msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
+
+        let mut state_change_data = Vec::new();
+        let mut log_data = Vec::new();
+        for shard in shards {
+            shard
+                //FIXME: filter by account_id
+                .state_changes
+                .into_iter()
+                .filter_map(|state_change| match state_change.value {
+                    v @ StateChangeValueView::AccessKeyUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccessKeyDeletion { .. } => {
+                        Some(v)
+                    }
+                    v @ StateChangeValueView::AccountUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccountDeletion { .. } => Some(v),
+                    _ => None,
+                })
+                .for_each(|state_change_value| {
+                    state_change_data.push(state_change_value)
+                });
+
+            for tx in shard
+                .receipt_execution_outcomes
+                .into_iter()
+                .filter(is_success)
+            {
+                if let Some((tx, logs)) =
+                    filter_and_split_receipt(timestamp, tx)
+                {
+                    if filter.contains(&tx.receiver.to_string()) {
+                        log_data.push((tx, logs));
+                    }
                 }
-            })
+            }
+        }
+
+        // log processing
+        let mut handles = log_data
+            .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
                 // establish a new connection on every transaction. That's what
@@ -261,6 +275,20 @@ impl MintlakeRuntime {
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
+
+        // state change processing
+        handles.append(
+            &mut state_change_data
+                .into_iter()
+                .map(|state_change| {
+                    let rt = self.tx_processing_runtime();
+                    #[allow(clippy::redundant_async_block)]
+                    actix_rt::spawn(async move {
+                        handle_state_change(&rt, timestamp, state_change).await
+                    })
+                })
+                .collect::<Vec<_>>(),
+        );
 
         // make sure that everything processed fine
         for handle in handles {
@@ -292,12 +320,19 @@ async fn handle_state_change(
     timestamp: chrono::NaiveDateTime,
     state_change: StateChangeValueView,
 ) {
+    use crate::handlers::*;
     match state_change {
         sc @ StateChangeValueView::AccessKeyUpdate { .. } => {
             handle_access_key_update(rt, timestamp, sc).await
         }
         sc @ StateChangeValueView::AccessKeyDeletion { .. } => {
             handle_access_key_deletion(rt, timestamp, sc).await
+        }
+        sc @ StateChangeValueView::AccountUpdate { .. } => {
+            handle_account_update(rt, timestamp, sc).await
+        }
+        sc @ StateChangeValueView::AccountDeletion { .. } => {
+            handle_account_deletion(rt, timestamp, sc).await
         }
         _ => {}
     }
@@ -363,12 +398,6 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
         | ("nep171", "1.2.0", "nft_metadata_update") => {
             handle_nft_metadata_update(rt, &tx, data).await
         }
-        // ----- ft_core -----
-        ("nep141", "1.0.0", "ft_mint") => handle_ft_mint(rt, &tx, data).await,
-        ("nep141", "1.0.0", "ft_transfer") => {
-            handle_ft_transfer(rt, &tx, data).await
-        }
-        ("nep141", "1.0.0", "ft_burn") => handle_ft_burn(rt, &tx, data).await,
         // ------------ nft_approvals
         ("mb_store", "0.1.0", "nft_approve") => {
             handle_nft_approve(rt, &tx, data).await
@@ -521,67 +550,8 @@ fn sanitize_event(
 fn is_success(tx: &IndexerExecutionOutcomeWithReceipt) -> bool {
     use near_lake_framework::near_indexer_primitives::views::ExecutionStatusView;
 
-    match tx.execution_outcome.outcome.status {
-        ExecutionStatusView::Failure(_) => false,
-        ExecutionStatusView::Unknown => false,
-        _ => true,
-    }
-}
-
-struct NearTransfer {
-    sender_id: AccountId,
-    receiver_id: AccountId,
-    amount: u128,
-    timestamp: chrono::NaiveDateTime,
-    receipt_id: String,
-}
-
-// This function assumes that the success status has already been checked. If
-// failed to check this beforehand, invalid transfers will be indexed.
-fn get_near_transfers(
-    timestamp: chrono::NaiveDateTime,
-    tx: &IndexerExecutionOutcomeWithReceipt,
-) -> Option<Vec<NearTransfer>> {
-    use near_lake_framework::near_indexer_primitives::views::{
-        ActionView,
-        ReceiptEnumView,
-    };
-
-    match &tx.receipt.receipt {
-        // TODO: double check that this actually contains the receipt ID
-        // and we are not dropping transfers here. This is probably a redundant
-        // consistency check
-        _ if !tx
-            .execution_outcome
-            .outcome
-            .receipt_ids
-            .contains(&tx.receipt.receipt_id) =>
-        {
-            None
-        }
-        // only action views contain NEAR transfers
-        ReceiptEnumView::Action { actions, .. } => {
-            // TODO: can this be more than one?
-            let mut transfers = Vec::new();
-            for action in actions {
-                match action {
-                    ActionView::Transfer { deposit } => {
-                        transfers.push(NearTransfer {
-                            sender_id: tx.receipt.predecessor_id.clone(),
-                            receiver_id: tx.receipt.receiver_id.clone(),
-                            amount: *deposit,
-                            timestamp: timestamp,
-                            receipt_id: tx.receipt.receipt_id.to_string(),
-                        });
-                    }
-                    _ => {}
-                }
-            }
-            match transfers.len() {
-                0 => None,
-                _ => Some(transfers),
-            }
-        }
-        _ => None,
-    }
+    !matches!(
+        tx.execution_outcome.outcome.status,
+        ExecutionStatusView::Failure(_) | ExecutionStatusView::Unknown
+    )
 }
