@@ -10,6 +10,8 @@ use crate::{
     handlers::{
         handle_access_key_deletion,
         handle_access_key_update,
+        handle_account_deletion,
+        handle_account_update,
     },
     logging::HandleErr,
     rpc_connection::MinteropRpcConnector,
@@ -239,19 +241,51 @@ impl MintlakeRuntime {
             crate::nsecs_to_timestamp(msg.block.header.timestamp_nanosec);
 
         // async execution of all transactions in a block
-        let handles = msg
-            .shards
-            .into_iter()
-            .filter(|shard| shard.chunk.is_some())
-            .flat_map(|shard| shard.receipt_execution_outcomes)
-            .filter_map(|tx| filter_and_split_receipt(timestamp, tx))
-            .filter_map(|(tx, logs)| {
-                if filter.contains(&tx.receiver.to_string()) {
-                    Some((tx, logs))
-                } else {
-                    None
+        let shards =
+            msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
+
+        let mut state_change_data = Vec::new();
+        let mut near_transfer_data = Vec::new();
+        let mut log_data = Vec::new();
+        for shard in shards {
+            shard
+                .state_changes
+                .into_iter()
+                .filter_map(|state_change| match state_change.value {
+                    v @ StateChangeValueView::AccessKeyUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccessKeyDeletion { .. } => {
+                        Some(v)
+                    }
+                    v @ StateChangeValueView::AccountUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccountDeletion { .. } => Some(v),
+                    _ => None,
+                })
+                .for_each(|state_change_value| {
+                    state_change_data.push(state_change_value)
+                });
+
+            for tx in shard
+                .receipt_execution_outcomes
+                .into_iter()
+                .filter(|tx| is_success(tx))
+            {
+                if let Some(mut near_transfers) =
+                    get_near_transfers(timestamp, &tx)
+                {
+                    near_transfer_data.append(&mut near_transfers);
+                } else if let Some((tx, logs)) =
+                    filter_and_split_receipt(timestamp, tx)
+                {
+                    if filter.contains(&tx.receiver.to_string()) {
+                        log_data.push((tx, logs));
+                    }
                 }
-            })
+            }
+        }
+
+        // log processing
+        let mut handles = log_data
+            .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
                 // establish a new connection on every transaction. That's what
@@ -261,6 +295,22 @@ impl MintlakeRuntime {
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
+
+        // state change processing
+        handles.append(
+            &mut state_change_data
+                .into_iter()
+                .map(|state_change| {
+                    let rt = self.tx_processing_runtime();
+                    actix_rt::spawn(async move {
+                        handle_state_change(&rt, timestamp, state_change).await
+                    })
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        // TODO: near_transfer processing
+        let near_transfer_handles = near_transfer_data;
 
         // make sure that everything processed fine
         for handle in handles {
@@ -298,6 +348,12 @@ async fn handle_state_change(
         }
         sc @ StateChangeValueView::AccessKeyDeletion { .. } => {
             handle_access_key_deletion(rt, timestamp, sc).await
+        }
+        sc @ StateChangeValueView::AccountUpdate { .. } => {
+            handle_account_update(rt, timestamp, sc).await
+        }
+        sc @ StateChangeValueView::AccountDeletion { .. } => {
+            handle_account_deletion(rt, timestamp, sc).await
         }
         _ => {}
     }
