@@ -497,12 +497,12 @@ fn is_success(tx: &IndexerExecutionOutcomeWithReceipt) -> bool {
     }
 }
 
-struct NearTransfer {
-    sender_id: AccountId,
-    receiver_id: AccountId,
-    amount: u128,
-    timestamp: chrono::NaiveDateTime,
-    receipt_id: String,
+pub(crate) struct NearTransfer {
+    pub(crate) sender_id: AccountId,
+    pub(crate) receiver_id: AccountId,
+    pub(crate) amount: u128,
+    pub(crate) timestamp: chrono::NaiveDateTime,
+    pub(crate) receipt_id: String,
 }
 
 // This function assumes that the success status has already been checked. If
