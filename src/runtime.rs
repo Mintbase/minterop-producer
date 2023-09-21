@@ -7,12 +7,6 @@ use near_lake_framework::near_indexer_primitives::{
 
 use crate::{
     database::DbConnPool,
-    handlers::{
-        handle_access_key_deletion,
-        handle_access_key_update,
-        handle_account_deletion,
-        handle_account_update,
-    },
     logging::HandleErr,
     rpc_connection::MinteropRpcConnector,
     LakeStreamer,
@@ -144,7 +138,7 @@ impl MintlakeRuntime {
             msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
 
         let mut state_change_data = Vec::new();
-        let mut near_transfer_data = Vec::new();
+        //let mut near_transfer_data = Vec::new();
         let mut log_data = Vec::new();
         for shard in shards {
             shard
@@ -163,21 +157,22 @@ impl MintlakeRuntime {
                     state_change_data.push(state_change_value)
                 });
 
-            for tx in shard
-                .receipt_execution_outcomes
-                .into_iter()
-                .filter(|tx| is_success(tx))
-            {
-                if let Some(mut near_transfers) =
-                    get_near_transfers(timestamp, &tx)
-                {
-                    near_transfer_data.append(&mut near_transfers);
-                } else if let Some((tx, logs)) =
-                    filter_and_split_receipt(timestamp, tx)
-                {
-                    log_data.push((tx, logs));
-                }
-            }
+            // TODO: uncoment after synchronizing index with state changes
+            // for tx in shard
+            //     .receipt_execution_outcomes
+            //     .into_iter()
+            //     .filter(|tx| is_success(tx))
+            // {
+            //     if let Some(mut near_transfers) =
+            //         get_near_transfers(timestamp, &tx)
+            //     {
+            //         near_transfer_data.append(&mut near_transfers);
+            //     } else if let Some((tx, logs)) =
+            //         filter_and_split_receipt(timestamp, tx)
+            //     {
+            //         log_data.push((tx, logs));
+            //     }
+            // }
         }
 
         // log processing
@@ -206,7 +201,7 @@ impl MintlakeRuntime {
                 .collect::<Vec<_>>(),
         );
         // TODO: near_transfer processing
-        let near_transfer_handles = near_transfer_data;
+        //let near_transfer_handles = near_transfer_data;
 
         // make sure that everything processed fine
         for handle in handles {
@@ -245,7 +240,7 @@ impl MintlakeRuntime {
             msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
 
         let mut state_change_data = Vec::new();
-        let mut near_transfer_data = Vec::new();
+        //let mut near_transfer_data = Vec::new();
         let mut log_data = Vec::new();
         for shard in shards {
             shard
@@ -264,23 +259,24 @@ impl MintlakeRuntime {
                     state_change_data.push(state_change_value)
                 });
 
-            for tx in shard
-                .receipt_execution_outcomes
-                .into_iter()
-                .filter(|tx| is_success(tx))
-            {
-                if let Some(mut near_transfers) =
-                    get_near_transfers(timestamp, &tx)
-                {
-                    near_transfer_data.append(&mut near_transfers);
-                } else if let Some((tx, logs)) =
-                    filter_and_split_receipt(timestamp, tx)
-                {
-                    if filter.contains(&tx.receiver.to_string()) {
-                        log_data.push((tx, logs));
-                    }
-                }
-            }
+            // TODO: uncoment after synchronizing index with state changes
+            // for tx in shard
+            //     .receipt_execution_outcomes
+            //     .into_iter()
+            //     .filter(|tx| is_success(tx))
+            // {
+            //     if let Some(mut near_transfers) =
+            //         get_near_transfers(timestamp, &tx)
+            //     {
+            //         near_transfer_data.append(&mut near_transfers);
+            //     } else if let Some((tx, logs)) =
+            //         filter_and_split_receipt(timestamp, tx)
+            //     {
+            //         if filter.contains(&tx.receiver.to_string()) {
+            //             log_data.push((tx, logs));
+            //         }
+            //     }
+            // }
         }
 
         // log processing
@@ -310,7 +306,7 @@ impl MintlakeRuntime {
         );
 
         // TODO: near_transfer processing
-        let near_transfer_handles = near_transfer_data;
+        //let near_transfer_handles = near_transfer_data;
 
         // make sure that everything processed fine
         for handle in handles {
@@ -342,6 +338,8 @@ async fn handle_state_change(
     timestamp: chrono::NaiveDateTime,
     state_change: StateChangeValueView,
 ) {
+    use crate::handlers::*;
+
     match state_change {
         sc @ StateChangeValueView::AccessKeyUpdate { .. } => {
             handle_access_key_update(rt, timestamp, sc).await
@@ -420,11 +418,12 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
             handle_nft_metadata_update(rt, &tx, data).await
         }
         // ----- ft_core -----
-        ("nep141", "1.0.0", "ft_mint") => handle_ft_mint(rt, &tx, data).await,
-        ("nep141", "1.0.0", "ft_transfer") => {
-            handle_ft_transfer(rt, &tx, data).await
-        }
-        ("nep141", "1.0.0", "ft_burn") => handle_ft_burn(rt, &tx, data).await,
+        // 
+        // ("nep141", "1.0.0", "ft_mint") => handle_ft_mint(rt, &tx, data).await,
+        // ("nep141", "1.0.0", "ft_transfer") => {
+        //     handle_ft_transfer(rt, &tx, data).await
+        // }
+        // ("nep141", "1.0.0", "ft_burn") => handle_ft_burn(rt, &tx, data).await,
         // ------------ nft_approvals
         ("mb_store", "0.1.0", "nft_approve") => {
             handle_nft_approve(rt, &tx, data).await
