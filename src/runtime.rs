@@ -418,7 +418,7 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
             handle_nft_metadata_update(rt, &tx, data).await
         }
         // ----- ft_core -----
-        // 
+        //
         // ("nep141", "1.0.0", "ft_mint") => handle_ft_mint(rt, &tx, data).await,
         // ("nep141", "1.0.0", "ft_transfer") => {
         //     handle_ft_transfer(rt, &tx, data).await
