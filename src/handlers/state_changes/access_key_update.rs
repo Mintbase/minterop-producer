@@ -43,7 +43,7 @@ pub(crate) async fn handle_access_key_update(
         }
     };
 
-    let _ = diesel::insert_into(access_keys::table)
+    diesel::insert_into(access_keys::table)
         .values(key_update)
         .execute_async(&rt.pg_connection)
         .await

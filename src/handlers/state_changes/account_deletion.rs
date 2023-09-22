@@ -32,7 +32,6 @@ pub(crate) async fn handle_account_deletion(
                 }).handle_err(|err|{crate::error!("Failed to delete account: {:?}", err)}),
         _ => {
             crate::warn!("Could not handle account deletion.");
-            return;
         }
     };
 }

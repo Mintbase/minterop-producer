@@ -34,7 +34,6 @@ pub(crate) async fn handle_access_key_deletion(
             }).handle_err(|err|{crate::error!("Failed to delete access_key: {:?}", err)}),
         _ => {
             crate::warn!("Could not handle access key deletion.");
-            return;
         }
     };
 }
