@@ -185,23 +185,10 @@ impl MintlakeRuntime {
 
         let state_change_aggregator =
             StateChangeAggregator::from(state_change_data);
-        // FIXME: don't print, process!
         state_change_aggregator
             .execute(&self.tx_processing_runtime(), timestamp)
             .await;
-        // state change processing
-        // handles.append(
-        //     &mut state_change_data
-        //         .into_iter()
-        //         .map(|state_change| {
-        //             let rt = self.tx_processing_runtime();
-        //             #[allow(clippy::redundant_async_block)]
-        //             actix_rt::spawn(async move {
-        //                 handle_state_change(&rt, timestamp, state_change).await
-        //             })
-        //         })
-        //         .collect::<Vec<_>>(),
-        // );
+
         // make sure that everything processed fine
         for handle in handles {
             handle.await.handle_err(|e| {
@@ -271,7 +258,7 @@ impl MintlakeRuntime {
         }
 
         // log processing
-        let mut handles = log_data
+        let handles = log_data
             .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
@@ -283,20 +270,10 @@ impl MintlakeRuntime {
             })
             .collect::<Vec<_>>();
 
-        // FIXME: same as above
-        // state change processing
-        handles.append(
-            &mut state_change_data
-                .into_iter()
-                .map(|state_change| {
-                    let rt = self.tx_processing_runtime();
-                    #[allow(clippy::redundant_async_block)]
-                    actix_rt::spawn(async move {
-                        handle_state_change(&rt, timestamp, state_change).await
-                    })
-                })
-                .collect::<Vec<_>>(),
-        );
+        // Since this method is meant to retroactively update/index smart
+        // contracts with deviating structure, we do not process state changes
+        // here. If state changes are buggy and need to be reprocessed, this
+        // would be the place to do so.
 
         // make sure that everything processed fine
         for handle in handles {
@@ -320,30 +297,6 @@ impl MintlakeRuntime {
             mintbase_root: self.mintbase_root.clone(),
             paras_marketplace_id: self.paras_marketplace_id.clone(),
         }
-    }
-}
-
-// FIXME: replace
-async fn handle_state_change(
-    rt: &TxProcessingRuntime,
-    timestamp: chrono::NaiveDateTime,
-    state_change: StateChangeValueView,
-) {
-    use crate::handlers::*;
-    match state_change {
-        sc @ StateChangeValueView::AccessKeyUpdate { .. } => {
-            handle_access_key_update(rt, timestamp, sc).await
-        }
-        sc @ StateChangeValueView::AccessKeyDeletion { .. } => {
-            handle_access_key_deletion(rt, timestamp, sc).await
-        }
-        sc @ StateChangeValueView::AccountUpdate { .. } => {
-            handle_account_update(rt, timestamp, sc).await
-        }
-        sc @ StateChangeValueView::AccountDeletion { .. } => {
-            handle_account_deletion(rt, timestamp, sc).await
-        }
-        _ => {}
     }
 }
 

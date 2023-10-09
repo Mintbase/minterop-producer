@@ -8,12 +8,6 @@ use near_lake_framework::near_indexer_primitives::{
 
 use crate::runtime::TxProcessingRuntime;
 
-// FIXME: only use reductions below
-crate::forward_mod!(access_key_update);
-crate::forward_mod!(access_key_deletion);
-crate::forward_mod!(account_update);
-crate::forward_mod!(account_deletion);
-
 pub struct StateChangeAggregator {
     // (account_id, public_key, timestamp)
     key_additions: Vec<(AccountId, PublicKey)>,
@@ -72,7 +66,7 @@ impl From<Vec<StateChangeValueView>> for StateChangeAggregator {
 }
 
 impl StateChangeAggregator {
-    pub async fn execute(
+    pub(crate) async fn execute(
         &self,
         rt: &TxProcessingRuntime,
         timestamp: NaiveDateTime,
@@ -101,7 +95,7 @@ impl StateChangeAggregator {
             self.key_additions
             .iter()
             .map(|(account_id, public_key)| {
-                format!("({}, {}, {})", account_id, public_key.to_string(), timestamp)
+                format!("({}, {}, {})", account_id, public_key, timestamp)
             })
             .join(", ")
         );
@@ -125,7 +119,7 @@ impl StateChangeAggregator {
                     "UPDATE access_keys SET removed_at = {} WHERE account_id = {} and public_key = {}",
                     timestamp,
                     account_id,
-                    public_key.to_string()
+                    public_key,
                 )
             })
             .join("\n");
