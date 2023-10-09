@@ -7,6 +7,7 @@ use near_lake_framework::near_indexer_primitives::{
 
 use crate::{
     database::DbConnPool,
+    handlers::StateChangeAggregator,
     logging::HandleErr,
     rpc_connection::MinteropRpcConnector,
     LakeStreamer,
@@ -170,7 +171,7 @@ impl MintlakeRuntime {
         }
 
         // log processing
-        let mut handles = log_data
+        let handles = log_data
             .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
@@ -182,19 +183,25 @@ impl MintlakeRuntime {
             })
             .collect::<Vec<_>>();
 
+        let state_change_aggregator =
+            StateChangeAggregator::from(state_change_data);
+        // FIXME: don't print, process!
+        state_change_aggregator
+            .execute(&self.tx_processing_runtime(), timestamp)
+            .await;
         // state change processing
-        handles.append(
-            &mut state_change_data
-                .into_iter()
-                .map(|state_change| {
-                    let rt = self.tx_processing_runtime();
-                    #[allow(clippy::redundant_async_block)]
-                    actix_rt::spawn(async move {
-                        handle_state_change(&rt, timestamp, state_change).await
-                    })
-                })
-                .collect::<Vec<_>>(),
-        );
+        // handles.append(
+        //     &mut state_change_data
+        //         .into_iter()
+        //         .map(|state_change| {
+        //             let rt = self.tx_processing_runtime();
+        //             #[allow(clippy::redundant_async_block)]
+        //             actix_rt::spawn(async move {
+        //                 handle_state_change(&rt, timestamp, state_change).await
+        //             })
+        //         })
+        //         .collect::<Vec<_>>(),
+        // );
         // make sure that everything processed fine
         for handle in handles {
             handle.await.handle_err(|e| {
@@ -276,6 +283,7 @@ impl MintlakeRuntime {
             })
             .collect::<Vec<_>>();
 
+        // FIXME: same as above
         // state change processing
         handles.append(
             &mut state_change_data
@@ -315,6 +323,7 @@ impl MintlakeRuntime {
     }
 }
 
+// FIXME: replace
 async fn handle_state_change(
     rt: &TxProcessingRuntime,
     timestamp: chrono::NaiveDateTime,

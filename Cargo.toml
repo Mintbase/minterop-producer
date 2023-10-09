@@ -43,6 +43,8 @@ async-trait = "0.1.56"
 futures = "0.3.21"
 # Required for json_types inside paras market events
 near-sdk = "4.1.1"
+near-crypto = "0.17.0"
+itertools = "0.11.0"
 
 
 # diesel handles the database connection
@@ -72,6 +74,6 @@ features = ["all"]
 
 [dependencies.minterop-data]
 git = "https://github.com/Mintbase/minterop-data"
-rev = "d87013e93ed84612c051e1ae38ad0c0712062d3d"
+rev = "c8f15f242c4fc4aa0bc3580448b41fb9ea290967"
 
 [features]

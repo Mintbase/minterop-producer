@@ -1,9 +1,6 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use chrono::NaiveDateTime;
-use near_lake_framework::near_indexer_primitives::views::{
-    AccessKeyPermissionView,
-    StateChangeValueView,
-};
+use near_lake_framework::near_indexer_primitives::views::StateChangeValueView;
 
 use crate::{
     handlers::prelude::*,
@@ -16,29 +13,14 @@ pub(crate) async fn handle_access_key_update(
     state_change_value: StateChangeValueView,
 ) {
     let key_update: AccessKey = match state_change_value {
+        // FIXME: skip if this is not a FullAccessKey
         StateChangeValueView::AccessKeyUpdate {
             account_id,
             public_key,
-            access_key,
+            access_key: _,
         } => AccessKey {
             account_id: account_id.to_string(),
             public_key: public_key.to_string(),
-            permissions: match access_key.permission {
-                p @ AccessKeyPermissionView::FunctionCall { .. } => {
-                    Some(match serde_json::to_value(p) {
-                        Ok(mut val) => val
-                            .as_object_mut()
-                            .unwrap()
-                            .remove("FunctionCall")
-                            .unwrap(),
-                        Err(e) => {
-                            crate::error!("Failed to partially serialize the AccessKeyPermissionView: {}", e);
-                            return;
-                        }
-                    })
-                }
-                AccessKeyPermissionView::FullAccess => None,
-            },
             created_at: timestamp,
             removed_at: None,
         },
