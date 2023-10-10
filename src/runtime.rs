@@ -1,13 +1,16 @@
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
-    views::StateChangeValueView,
+    views::{
+        ReceiptEnumView,
+        StateChangeValueView,
+    },
     IndexerExecutionOutcomeWithReceipt,
     StreamerMessage,
 };
 
 use crate::{
     database::DbConnPool,
-    handlers::StateChangeAggregator,
+    handlers::TrackedAction,
     logging::HandleErr,
     rpc_connection::MinteropRpcConnector,
     LakeStreamer,
@@ -138,30 +141,31 @@ impl MintlakeRuntime {
         let shards =
             msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
 
-        let mut state_change_data = Vec::new();
         let mut log_data = Vec::new();
+        let mut tracked_actions: Vec<TrackedAction> = Vec::new();
         for shard in shards {
-            shard
-                .state_changes
-                .into_iter()
-                .filter_map(|state_change| match state_change.value {
-                    v @ StateChangeValueView::AccessKeyUpdate { .. } => Some(v),
-                    v @ StateChangeValueView::AccessKeyDeletion { .. } => {
-                        Some(v)
-                    }
-                    v @ StateChangeValueView::AccountUpdate { .. } => Some(v),
-                    v @ StateChangeValueView::AccountDeletion { .. } => Some(v),
-                    _ => None,
-                })
-                .for_each(|state_change_value| {
-                    state_change_data.push(state_change_value)
-                });
-
             for tx in shard
                 .receipt_execution_outcomes
                 .into_iter()
                 .filter(is_success)
             {
+                // check actions that we track
+                if let ReceiptEnumView::Action { ref actions, .. } =
+                    tx.receipt.receipt
+                {
+                    for action in actions {
+                        if let Some(action) = TrackedAction::try_new(
+                            &tx.receipt.receiver_id,
+                            timestamp,
+                            &tx.receipt.receipt_id,
+                            action,
+                        ) {
+                            tracked_actions.push(action);
+                        }
+                    }
+                }
+
+                // check for logs that we might wish to process
                 if let Some((tx, logs)) =
                     filter_and_split_receipt(timestamp, tx)
                 {
@@ -171,7 +175,7 @@ impl MintlakeRuntime {
         }
 
         // log processing
-        let handles = log_data
+        let mut handles = log_data
             .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
@@ -183,11 +187,17 @@ impl MintlakeRuntime {
             })
             .collect::<Vec<_>>();
 
-        let state_change_aggregator =
-            StateChangeAggregator::from(state_change_data);
-        state_change_aggregator
-            .execute(&self.tx_processing_runtime(), timestamp)
-            .await;
+        // tracked action processing
+        handles.append(
+            &mut tracked_actions
+                .into_iter()
+                .map(|action| {
+                    let rt = self.tx_processing_runtime();
+                    #[allow(clippy::redundant_async_block)]
+                    actix_rt::spawn(async move { action.process(&rt).await })
+                })
+                .collect(),
+        );
 
         // make sure that everything processed fine
         for handle in handles {
