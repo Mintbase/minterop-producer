@@ -22,6 +22,13 @@ pub(crate) trait ExecuteDb {
         tx: &crate::runtime::ReceiptData,
         msg: &str,
     );
+
+    async fn execute_db_action(
+        self,
+        db: &DbConnPool,
+        receipt_id: &str,
+        msg: &str,
+    );
 }
 
 #[async_trait::async_trait]
@@ -39,6 +46,22 @@ where
     ) {
         if let Err(e) = self.execute_async(db).await {
             crate::error!("Failed to {}: {} ({:?})", msg, e, tx);
+        }
+    }
+
+    async fn execute_db_action(
+        self,
+        db: &DbConnPool,
+        receipt_id: &str,
+        msg: &str,
+    ) {
+        if let Err(e) = self.execute_async(db).await {
+            crate::error!(
+                "Failed to {}:, {} (receipt_id: {})",
+                msg,
+                e,
+                receipt_id
+            )
         }
     }
 }
