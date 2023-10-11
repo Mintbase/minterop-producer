@@ -8,6 +8,7 @@ use near_lake_framework::near_indexer_primitives::{
 use crate::{
     database::ExecuteDb,
     handlers::prelude::*,
+    runtime::TxProcessingRuntime,
 };
 
 pub(crate) enum TrackedAction {
@@ -68,7 +69,7 @@ impl TrackedAction {
         }
     }
 
-    pub async fn process(self, rt: &crate::runtime::TxProcessingRuntime) {
+    pub async fn process(self, rt: &TxProcessingRuntime) {
         match self {
             TrackedAction::AddKey(a) => a.process(rt).await,
             TrackedAction::DeleteKey(a) => a.process(rt).await,
@@ -86,7 +87,7 @@ pub(crate) struct AddKey {
 }
 
 impl AddKey {
-    async fn process(self, rt: &crate::runtime::TxProcessingRuntime) {
+    async fn process(self, rt: &TxProcessingRuntime) {
         diesel::insert_into(access_keys::table)
             .values(AccessKey {
                 account_id: self.account_id,
@@ -113,14 +114,14 @@ pub(crate) struct DeleteKey {
 }
 
 impl DeleteKey {
-    async fn process(self, rt: &crate::runtime::TxProcessingRuntime) {
+    async fn process(self, rt: &TxProcessingRuntime) {
         use access_keys::dsl;
 
         diesel::update(
             dsl::access_keys
                 .filter(dsl::account_id.eq(self.account_id))
                 .filter(dsl::public_key.eq(self.public_key))
-                .filter(dsl::removed_at.is_not_null()),
+                .filter(dsl::removed_at.is_null()),
         )
         .set((
             dsl::removed_at.eq(self.timestamp),
@@ -142,7 +143,7 @@ pub(crate) struct CreateAccount {
 }
 
 impl CreateAccount {
-    async fn process(self, rt: &crate::runtime::TxProcessingRuntime) {
+    async fn process(self, rt: &TxProcessingRuntime) {
         diesel::insert_into(accounts::table)
             .values(Account {
                 account_id: self.account_id,
@@ -169,13 +170,13 @@ pub(crate) struct DeleteAccount {
 }
 
 impl DeleteAccount {
-    async fn process(self, rt: &crate::runtime::TxProcessingRuntime) {
+    async fn process(self, rt: &TxProcessingRuntime) {
         use accounts::dsl;
 
         diesel::update(
             dsl::accounts
                 .filter(dsl::account_id.eq(self.account_id))
-                .filter(dsl::removed_at.is_not_null()),
+                .filter(dsl::removed_at.is_null()),
         )
         .set((
             dsl::removed_at.eq(self.timestamp),
@@ -185,7 +186,7 @@ impl DeleteAccount {
         .execute_db_action(
             &rt.pg_connection,
             &self.receipt_id,
-            "mark access key as removed",
+            "mark account as removed",
         )
         .await;
     }
