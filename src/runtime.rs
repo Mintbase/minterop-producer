@@ -267,18 +267,18 @@ impl MintlakeRuntime {
             }
         }
 
-        // log processing
-        let handles = log_data
-            .into_iter()
-            .map(|(tx, logs)| {
-                // This clone internally clones an Arc, and thus doesn't
-                // establish a new connection on every transaction. That's what
-                // we want here
-                let rt = self.tx_processing_runtime();
-                #[allow(clippy::redundant_async_block)]
-                actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
-            })
-            .collect::<Vec<_>>();
+        // // log processing
+        // let handles = log_data
+        //     .into_iter()
+        //     .map(|(tx, logs)| {
+        //         // This clone internally clones an Arc, and thus doesn't
+        //         // establish a new connection on every transaction. That's what
+        //         // we want here
+        //         let rt = self.tx_processing_runtime();
+        //         #[allow(clippy::redundant_async_block)]
+        //         actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
+        //     })
+        //     .collect::<Vec<_>>();
 
         // Since this method is meant to retroactively update/index smart
         // contracts with deviating structure, we do not process state changes
@@ -286,15 +286,15 @@ impl MintlakeRuntime {
         // would be the place to do so.
 
         // make sure that everything processed fine
-        for handle in handles {
-            handle.await.handle_err(|e| {
-                crate::error!(
-                    "Could not join async handle at block height {}: {:?}",
-                    height,
-                    e
-                )
-            });
-        }
+        // for handle in handles {
+        //     handle.await.handle_err(|e| {
+        //         crate::error!(
+        //             "Could not join async handle at block height {}: {:?}",
+        //             height,
+        //             e
+        //         )
+        //     });
+        // }
 
         update_db_blockheight(&self.pg_connection, height).await;
         height

@@ -18,8 +18,9 @@ COMMIT_HASH=$(cat meta.json | jq '.attributes.COMMIT_HASH' | tr -d '"')
 (
   source .env || exit 1
   # latest_block=$(psql "$POSTGRES" -c 'select synced_height from blocks;' | head -n 3 | tail -n 1 | xargs)
-  latest_block=$(psql "$POSTGRES" -c 'select synced_height_tmp from blocks;' | head -n 3 | tail -n 1 | xargs)
-  sed -i "s/START_BLOCK_HEIGHT=.*/START_BLOCK_HEIGHT=$latest_block/" .env
+  # latest_block=$(psql "$POSTGRES" -c 'select synced_height_tmp from blocks;' | head -n 3 | tail -n 1 | xargs)
+  # sed -i "s/START_BLOCK_HEIGHT=.*/START_BLOCK_HEIGHT=$latest_block/" .env
+  sed -i "s/START_BLOCK_HEIGHT=.*/START_BLOCK_HEIGHT=0/" .env
 ) || exit 1
 
 # Pull docker image
