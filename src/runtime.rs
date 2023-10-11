@@ -497,12 +497,12 @@ async fn update_db_blockheight(db: &DbConnPool, height: u64) {
     use minterop_data::schema::blocks::dsl::*;
 
     diesel::update(blocks)
-        .set(synced_height.eq(height as i64))
+        .set(synced_height_tmp.eq(height as i64))
         .execute_async(db)
         .await
         .handle_err(|e| {
             crate::error!(
-                r#"Failed to set "blocks.synced_height" to {}: {}"#,
+                r#"Failed to set "blocks.synced_height_tmp" to {}: {}"#,
                 height,
                 e
             )
