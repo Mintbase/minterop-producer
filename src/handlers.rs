@@ -26,6 +26,7 @@ crate::forward_mod!(nft_payouts);
 crate::forward_mod!(mb_store_settings);
 crate::forward_mod!(contract_metadata_update);
 crate::forward_mod!(nft_metadata_update);
+crate::forward_mod!(tracked_actions);
 
 pub mod market_v01;
 pub mod market_v02;

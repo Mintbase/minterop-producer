@@ -1,12 +1,16 @@
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
-    views::BlockHeaderView,
+    views::{
+        ReceiptEnumView,
+        StateChangeValueView,
+    },
     IndexerExecutionOutcomeWithReceipt,
     StreamerMessage,
 };
 
 use crate::{
     database::DbConnPool,
+    handlers::TrackedAction,
     logging::HandleErr,
     rpc_connection::MinteropRpcConnector,
     LakeStreamer,
@@ -126,18 +130,53 @@ impl MintlakeRuntime {
     /// and have logs, and then spawn tasks that process them asynchronously.
     async fn handle_msg_unfiltered(&self, msg: StreamerMessage) -> u64 {
         let height = msg.block.header.height;
-
         if height % 10 == 0 {
             crate::info!("Processing block {}", height);
         }
 
+        let timestamp =
+            crate::nsecs_to_timestamp(msg.block.header.timestamp_nanosec);
+
         // async execution of all transactions in a block
-        let handles = msg
-            .shards
+        let shards =
+            msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
+
+        let mut log_data = Vec::new();
+        let mut tracked_actions: Vec<TrackedAction> = Vec::new();
+        for shard in shards {
+            for tx in shard
+                .receipt_execution_outcomes
+                .into_iter()
+                .filter(is_success)
+            {
+                // check actions that we track
+                if let ReceiptEnumView::Action { ref actions, .. } =
+                    tx.receipt.receipt
+                {
+                    for action in actions {
+                        if let Some(action) = TrackedAction::try_new(
+                            &tx.receipt.receiver_id,
+                            timestamp,
+                            &tx.receipt.receipt_id,
+                            action,
+                        ) {
+                            tracked_actions.push(action);
+                        }
+                    }
+                }
+
+                // check for logs that we might wish to process
+                if let Some((tx, logs)) =
+                    filter_and_split_receipt(timestamp, tx)
+                {
+                    log_data.push((tx, logs));
+                }
+            }
+        }
+
+        // log processing
+        let mut handles = log_data
             .into_iter()
-            .filter(|shard| shard.chunk.is_some())
-            .flat_map(|shard| shard.receipt_execution_outcomes)
-            .filter_map(|tx| filter_and_split_receipt(&msg.block.header, tx))
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
                 // establish a new connection on every transaction. That's what
@@ -147,6 +186,18 @@ impl MintlakeRuntime {
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
+
+        // tracked action processing
+        handles.append(
+            &mut tracked_actions
+                .into_iter()
+                .map(|action| {
+                    let rt = self.tx_processing_runtime();
+                    #[allow(clippy::redundant_async_block)]
+                    actix_rt::spawn(async move { action.process(&rt).await })
+                })
+                .collect(),
+        );
 
         // make sure that everything processed fine
         for handle in handles {
@@ -170,25 +221,55 @@ impl MintlakeRuntime {
         filter: &[String],
     ) -> u64 {
         let height = msg.block.header.height;
-
         if height % 10 == 0 {
             crate::info!("Processing block {}", height);
         }
 
+        let timestamp =
+            crate::nsecs_to_timestamp(msg.block.header.timestamp_nanosec);
+
         // async execution of all transactions in a block
-        let handles = msg
-            .shards
-            .into_iter()
-            .filter(|shard| shard.chunk.is_some())
-            .flat_map(|shard| shard.receipt_execution_outcomes)
-            .filter_map(|tx| filter_and_split_receipt(&msg.block.header, tx))
-            .filter_map(|(tx, logs)| {
-                if filter.contains(&tx.receiver.to_string()) {
-                    Some((tx, logs))
-                } else {
-                    None
+        let shards =
+            msg.shards.into_iter().filter(|shard| shard.chunk.is_some());
+
+        let mut state_change_data = Vec::new();
+        let mut log_data = Vec::new();
+        for shard in shards {
+            shard
+                //FIXME: filter by account_id
+                .state_changes
+                .into_iter()
+                .filter_map(|state_change| match state_change.value {
+                    v @ StateChangeValueView::AccessKeyUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccessKeyDeletion { .. } => {
+                        Some(v)
+                    }
+                    v @ StateChangeValueView::AccountUpdate { .. } => Some(v),
+                    v @ StateChangeValueView::AccountDeletion { .. } => Some(v),
+                    _ => None,
+                })
+                .for_each(|state_change_value| {
+                    state_change_data.push(state_change_value)
+                });
+
+            for tx in shard
+                .receipt_execution_outcomes
+                .into_iter()
+                .filter(is_success)
+            {
+                if let Some((tx, logs)) =
+                    filter_and_split_receipt(timestamp, tx)
+                {
+                    if filter.contains(&tx.receiver.to_string()) {
+                        log_data.push((tx, logs));
+                    }
                 }
-            })
+            }
+        }
+
+        // log processing
+        let handles = log_data
+            .into_iter()
             .map(|(tx, logs)| {
                 // This clone internally clones an Arc, and thus doesn't
                 // establish a new connection on every transaction. That's what
@@ -198,6 +279,11 @@ impl MintlakeRuntime {
                 actix_rt::spawn(async move { handle_tx(&rt, tx, logs).await })
             })
             .collect::<Vec<_>>();
+
+        // Since this method is meant to retroactively update/index smart
+        // contracts with deviating structure, we do not process state changes
+        // here. If state changes are buggy and need to be reprocessed, this
+        // would be the place to do so.
 
         // make sure that everything processed fine
         for handle in handles {
@@ -373,39 +459,32 @@ pub(crate) struct ReceiptData {
     // pub(crate) block_height: u64,
 }
 
+// This function assumes that the success status has already been checked. If
+// failed to check this beforehand, invalid logs will be indexed.
 fn filter_and_split_receipt(
-    header: &BlockHeaderView,
+    timestamp: chrono::NaiveDateTime,
     tx: IndexerExecutionOutcomeWithReceipt,
 ) -> Option<(ReceiptData, Vec<String>)> {
     use near_lake_framework::near_indexer_primitives::views;
 
-    // check for tx success
-    match tx.execution_outcome.outcome.status {
-        views::ExecutionStatusView::Unknown => None,
-        views::ExecutionStatusView::Failure(_) => None,
-        // check if we have any logs
-        _ => match tx.execution_outcome.outcome.logs.len() {
-            0 => None,
-            _ => Some((
-                ReceiptData {
-                    id: tx.receipt.receipt_id.to_string(),
-                    sender: tx.receipt.predecessor_id,
-                    sender_pk: match tx.receipt.receipt {
-                        views::ReceiptEnumView::Action {
-                            signer_public_key,
-                            ..
-                        } => Some(signer_public_key.to_string()),
-                        _ => None,
-                    },
-                    receiver: tx.receipt.receiver_id,
-                    timestamp: crate::nsecs_to_timestamp(
-                        header.timestamp_nanosec,
-                    ),
-                    // block_height: header.height,
+    match tx.execution_outcome.outcome.logs.len() {
+        0 => None,
+        _ => Some((
+            ReceiptData {
+                id: tx.receipt.receipt_id.to_string(),
+                sender: tx.receipt.predecessor_id,
+                sender_pk: match tx.receipt.receipt {
+                    views::ReceiptEnumView::Action {
+                        signer_public_key,
+                        ..
+                    } => Some(signer_public_key.to_string()),
+                    _ => None,
                 },
-                tx.execution_outcome.outcome.logs,
-            )),
-        },
+                receiver: tx.receipt.receiver_id,
+                timestamp,
+            },
+            tx.execution_outcome.outcome.logs,
+        )),
     }
 }
 
@@ -438,4 +517,13 @@ fn sanitize_event(
     let version = version.trim_start_matches("nft-").to_string();
 
     (nep, version, event, data)
+}
+
+fn is_success(tx: &IndexerExecutionOutcomeWithReceipt) -> bool {
+    use near_lake_framework::near_indexer_primitives::views::ExecutionStatusView;
+
+    !matches!(
+        tx.execution_outcome.outcome.status,
+        ExecutionStatusView::Failure(_) | ExecutionStatusView::Unknown
+    )
 }
