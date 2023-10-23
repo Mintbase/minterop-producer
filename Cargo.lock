@@ -1731,15 +1731,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "itertools"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
-dependencies = [
- "either",
-]
-
-[[package]]
 name = "itoa"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1909,10 +1900,8 @@ dependencies = [
  "futures",
  "hyper",
  "hyper-tls",
- "itertools 0.11.0",
  "mb-sdk",
  "minterop-data",
- "near-crypto 0.17.0",
  "near-lake-framework",
  "near-sdk",
  "near_events",
@@ -2054,7 +2043,7 @@ name = "near-event-data-log-macro"
 version = "0.1.0"
 source = "git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857#f5e36e02b3bb030b99425b0ec7a46478b0967857"
 dependencies = [
- "itertools 0.10.5",
+ "itertools",
  "proc-macro-support",
  "proc-macro2",
  "quote",
@@ -2066,7 +2055,7 @@ name = "near-event-data-macro"
 version = "0.1.0"
 source = "git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857#f5e36e02b3bb030b99425b0ec7a46478b0967857"
 dependencies = [
- "itertools 0.10.5",
+ "itertools",
  "proc-macro-support",
  "proc-macro2",
  "quote",
@@ -2690,7 +2679,7 @@ name = "proc-macro-support"
 version = "0.1.0"
 source = "git+https://github.com/mintbase/near-events?rev=f5e36e02b3bb030b99425b0ec7a46478b0967857#f5e36e02b3bb030b99425b0ec7a46478b0967857"
 dependencies = [
- "itertools 0.10.5",
+ "itertools",
  "proc-macro2",
  "syn 1.0.103",
 ]

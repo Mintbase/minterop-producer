@@ -43,9 +43,6 @@ async-trait = "0.1.56"
 futures = "0.3.21"
 # Required for json_types inside paras market events
 near-sdk = "4.1.1"
-near-crypto = "0.17.0"
-itertools = "0.11.0"
-
 
 # diesel handles the database connection
 [dependencies.diesel]
