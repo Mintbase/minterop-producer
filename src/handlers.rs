@@ -49,7 +49,8 @@ async fn invalidate_nft_listings(
         .filter(dsl::token_id.eq(any(token_ids)))
         .filter(dsl::accepted_at.is_null())
         .filter(dsl::unlisted_at.is_null())
-        .filter(dsl::invalidated_at.is_null());
+        .filter(dsl::invalidated_at.is_null())
+        .filter(dsl::created_at.lt(tx.timestamp));
 
     if let Some(market_id) = market_id {
         diesel::update(source.filter(dsl::market_id.eq(market_id)))
