@@ -1,10 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use hyper::{
-    Body,
-    Request,
-};
+use hyper::{Body, Request};
 use minterop_data::rpc_payloads::*;
 use near_lake_framework::near_indexer_primitives::types::AccountId;
 
@@ -71,6 +68,35 @@ impl MinteropRpcConnector {
                 e,
                 contract_id,
                 token_ids
+            )
+        }
+    }
+
+    pub async fn create_metadata(
+        &self,
+        contract_id: AccountId,
+        metadata_id: u64,
+        creator: String,
+    ) {
+        let req = post_json(
+            &self.endpoint.to_string(),
+            &RpcMessage::from_metadata(
+                contract_id.to_string(),
+                metadata_id,
+                creator.to_string(),
+            ),
+        );
+
+        crate::debug!("req: {:?}", req);
+        let res = self.client.request(req).await;
+        crate::debug!("res: {:?}", res);
+
+        if let Err(e) = res {
+            crate::error!(
+                "Failed to request metadata creation: {} ({}<$>{})",
+                e,
+                contract_id,
+                metadata_id
             )
         }
     }
