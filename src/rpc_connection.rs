@@ -74,16 +74,20 @@ impl MinteropRpcConnector {
 
     pub async fn create_metadata(
         &self,
-        contract_id: AccountId,
+        contract_id: String,
         metadata_id: u64,
+        minters_allowlist: Option<Vec<String>>,
+        price: u128,
         creator: String,
     ) {
         let req = post_json(
             &self.endpoint.to_string(),
             &RpcMessage::from_metadata(
-                contract_id.to_string(),
+                contract_id.clone(),
                 metadata_id,
-                creator.to_string(),
+                minters_allowlist,
+                price,
+                creator,
             ),
         );
 
