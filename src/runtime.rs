@@ -1,19 +1,12 @@
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
-    views::{
-        ReceiptEnumView,
-        StateChangeValueView,
-    },
-    IndexerExecutionOutcomeWithReceipt,
-    StreamerMessage,
+    views::{ReceiptEnumView, StateChangeValueView},
+    IndexerExecutionOutcomeWithReceipt, StreamerMessage,
 };
 
 use crate::{
-    database::DbConnPool,
-    handlers::TrackedAction,
-    logging::HandleErr,
-    rpc_connection::MinteropRpcConnector,
-    LakeStreamer,
+    database::DbConnPool, handlers::TrackedAction, logging::HandleErr,
+    rpc_connection::MinteropRpcConnector, LakeStreamer,
 };
 
 /// Holding all the data needed to handle blocks
@@ -369,6 +362,10 @@ async fn handle_log(rt: &TxProcessingRuntime, tx: ReceiptData, log: String) {
         ("nep171", "1.1.0", "nft_metadata_update")
         | ("nep171", "1.2.0", "nft_metadata_update") => {
             handle_nft_metadata_update(rt, &tx, data).await
+        }
+        // ------------ create_metadata
+        ("mb_store", "2.0.0", "create_metadata") => {
+            handle_create_metadata(rt, &tx, data).await
         }
         // ------------ nft_approvals
         ("mb_store", "0.1.0", "nft_approve") => {
