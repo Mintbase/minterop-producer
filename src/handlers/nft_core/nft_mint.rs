@@ -1,10 +1,7 @@
 use mb_sdk::events::nft_core::NftMintLog;
 
 use crate::{
-    error,
-    handlers::prelude::*,
-    runtime::TxProcessingRuntime,
-    ReceiptData,
+    error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData,
 };
 
 pub(crate) async fn handle_nft_mint(
@@ -121,12 +118,6 @@ async fn insert_nft_activities(
 }
 
 // ----------- logic for parsing mint memos on MB token contracts ----------- //
-type SafeFractionMap = std::collections::HashMap<
-    mb_sdk::near_sdk::AccountId,
-    mb_sdk::types::nft_core::SafeFraction,
->;
-type U16Map = std::collections::HashMap<mb_sdk::near_sdk::AccountId, u16>;
-
 fn parse_mint_memo(
     memo: &str,
     tx: &ReceiptData,
@@ -150,26 +141,21 @@ fn parse_mint_memo(
 
             let royalties = memo
                 .royalty
-                .map(|royalty| map_fractions_to_u16(royalty.split_between))
+                .map(|royalty| {
+                    crate::util::map_fractions_to_u16(&royalty.split_between)
+                })
                 .and_then(|map| serde_json::to_value(map).ok());
 
             let splits = memo
                 .split_owners
                 .map(|split_owners| {
-                    map_fractions_to_u16(split_owners.split_between)
+                    crate::util::map_fractions_to_u16(
+                        &split_owners.split_between,
+                    )
                 })
                 .and_then(|map| serde_json::to_value(map).ok());
 
             (royalties_percent, royalties, splits)
         }
     }
-}
-
-fn map_fractions_to_u16(mut safe_fraction_map: SafeFractionMap) -> U16Map {
-    safe_fraction_map
-        .drain()
-        .map(|(account_id, safe_fraction)| {
-            (account_id, safe_fraction.numerator as u16)
-        })
-        .collect()
 }

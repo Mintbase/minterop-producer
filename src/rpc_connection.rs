@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use hyper::{Body, Request};
+use hyper::{
+    Body,
+    Request,
+};
 use minterop_data::rpc_payloads::*;
 use near_lake_framework::near_indexer_primitives::types::AccountId;
 
@@ -72,12 +75,18 @@ impl MinteropRpcConnector {
         }
     }
 
+    #[allow(clippy::too_many_arguments)] // Forgive me father for I have sinned
     pub async fn create_metadata(
         &self,
         contract_id: String,
         metadata_id: u64,
         minters_allowlist: Option<Vec<String>>,
         price: u128,
+        royalties: Option<crate::util::U16Map>,
+        royalty_percent: Option<u16>,
+        max_supply: Option<u32>,
+        last_possible_mint: Option<u64>,
+        is_locked: bool,
         creator: String,
     ) {
         let req = post_json(
@@ -87,6 +96,11 @@ impl MinteropRpcConnector {
                 metadata_id,
                 minters_allowlist,
                 price,
+                royalties,
+                royalty_percent,
+                max_supply,
+                last_possible_mint,
+                is_locked,
                 creator,
             ),
         );
