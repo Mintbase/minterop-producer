@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use hyper::{Body, Request};
+use hyper::{
+    Body,
+    Request,
+};
 use minterop_data::rpc_payloads::*;
 
 type Client = hyper::Client<
