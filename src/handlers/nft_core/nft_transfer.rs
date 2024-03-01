@@ -83,7 +83,7 @@ async fn insert_nft_tokens(
             owner: log.new_owner_id.clone(),
             last_transfer_timestamp: Some(tx.timestamp),
             last_transfer_receipt_id: Some(tx.id.clone()),
-            ..NftToken::empty()
+            ..Default::default()
         })
         .collect::<Vec<_>>();
 

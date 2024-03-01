@@ -69,7 +69,7 @@ async fn insert_nft_tokens(
             owner: tx.sender.to_string(),
             burned_timestamp: Some(tx.timestamp),
             burned_receipt_id: Some(tx.id.clone()),
-            ..NftToken::empty()
+            ..Default::default()
         })
         .collect::<Vec<_>>();
 

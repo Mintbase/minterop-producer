@@ -80,7 +80,7 @@ async fn insert_nft_tokens(
             royalties: royalties.clone(),
             royalties_percent,
             splits: splits.clone(),
-            ..NftToken::empty()
+            ..Default::default()
         })
         .collect::<Vec<_>>();
 
