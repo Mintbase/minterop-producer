@@ -1,10 +1,7 @@
 use mb_sdk::events::nft_core::NftTransferLog;
 
 use crate::{
-    error,
-    handlers::prelude::*,
-    runtime::TxProcessingRuntime,
-    ReceiptData,
+    error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData,
 };
 
 pub(crate) async fn handle_nft_transfer(
@@ -13,7 +10,9 @@ pub(crate) async fn handle_nft_transfer(
     data: serde_json::Value,
 ) {
     // contract should always be inserted prior to token for metadata resolve
-    rt.minterop_rpc.contract(tx.receiver.clone(), false).await;
+    rt.minterop_rpc
+        .contract(tx.receiver.to_string(), false)
+        .await;
 
     match serde_json::from_value::<Vec<NftTransferLog>>(data.clone()) {
         Err(_) => {
@@ -59,9 +58,10 @@ async fn handle_nft_transfer_log(
     actix_rt::spawn(async move {
         rt.minterop_rpc
             .token(
-                tx.receiver.clone(),
+                tx.receiver.to_string(),
                 log.token_ids,
                 Some(tx.sender.to_string()),
+                None,
             )
             .await
     });

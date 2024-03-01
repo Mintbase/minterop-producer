@@ -1,10 +1,7 @@
 use mb_sdk::events::nft_core::NftBurnLog;
 
 use crate::{
-    error,
-    handlers::prelude::*,
-    runtime::TxProcessingRuntime,
-    ReceiptData,
+    error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData,
 };
 
 pub(crate) async fn handle_nft_burn(
@@ -13,7 +10,9 @@ pub(crate) async fn handle_nft_burn(
     data: serde_json::Value,
 ) {
     // contract should always be inserted prior to token for metadata resolve
-    rt.minterop_rpc.contract(tx.receiver.clone(), false).await;
+    rt.minterop_rpc
+        .contract(tx.receiver.to_string(), false)
+        .await;
 
     match serde_json::from_value::<Vec<NftBurnLog>>(data.clone()) {
         Err(_) => error!(r#"Invalid log for "nft_burn": {} ({:?})"#, data, tx),

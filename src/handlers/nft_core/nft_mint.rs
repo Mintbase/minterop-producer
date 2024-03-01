@@ -10,7 +10,9 @@ pub(crate) async fn handle_nft_mint(
     data: serde_json::Value,
 ) {
     // contract should always be inserted prior to token for metadata resolve
-    rt.minterop_rpc.contract(tx.receiver.clone(), false).await;
+    rt.minterop_rpc
+        .contract(tx.receiver.to_string(), false)
+        .await;
 
     match serde_json::from_value::<Vec<NftMintLog>>(data.clone()) {
         Err(_) => error!(r#"Invalid log for "nft_mint": {} ({:?})"#, data, tx),
@@ -42,9 +44,10 @@ async fn handle_nft_mint_log(
     actix_rt::spawn(async move {
         rt.minterop_rpc
             .token(
-                tx.receiver.clone(),
+                tx.receiver.to_string(),
                 log.token_ids,
                 Some(tx.sender.to_string()),
+                None,
             )
             .await
     });
