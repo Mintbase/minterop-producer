@@ -13,7 +13,9 @@ pub(crate) async fn handle_nft_mint(
     data: serde_json::Value,
 ) {
     // contract should always be inserted prior to token for metadata resolve
-    rt.minterop_rpc.contract(tx.receiver.clone(), false).await;
+    rt.minterop_rpc
+        .contract(tx.receiver.to_string(), false)
+        .await;
 
     match serde_json::from_value::<Vec<NftMintLog>>(data.clone()) {
         Err(_) => error!(r#"Invalid log for "nft_mint": {} ({:?})"#, data, tx),
@@ -45,9 +47,10 @@ async fn handle_nft_mint_log(
     actix_rt::spawn(async move {
         rt.minterop_rpc
             .token(
-                tx.receiver.clone(),
+                tx.receiver.to_string(),
                 log.token_ids,
                 Some(tx.sender.to_string()),
+                None,
             )
             .await
     });
@@ -80,7 +83,7 @@ async fn insert_nft_tokens(
             royalties: royalties.clone(),
             royalties_percent,
             splits: splits.clone(),
-            ..NftToken::empty()
+            ..Default::default()
         })
         .collect::<Vec<_>>();
 
@@ -121,12 +124,6 @@ async fn insert_nft_activities(
 }
 
 // ----------- logic for parsing mint memos on MB token contracts ----------- //
-type SafeFractionMap = std::collections::HashMap<
-    mb_sdk::near_sdk::AccountId,
-    mb_sdk::types::nft_core::SafeFraction,
->;
-type U16Map = std::collections::HashMap<mb_sdk::near_sdk::AccountId, u16>;
-
 fn parse_mint_memo(
     memo: &str,
     tx: &ReceiptData,
@@ -150,26 +147,21 @@ fn parse_mint_memo(
 
             let royalties = memo
                 .royalty
-                .map(|royalty| map_fractions_to_u16(royalty.split_between))
+                .map(|royalty| {
+                    crate::util::map_fractions_to_u16(&royalty.split_between)
+                })
                 .and_then(|map| serde_json::to_value(map).ok());
 
             let splits = memo
                 .split_owners
                 .map(|split_owners| {
-                    map_fractions_to_u16(split_owners.split_between)
+                    crate::util::map_fractions_to_u16(
+                        &split_owners.split_between,
+                    )
                 })
                 .and_then(|map| serde_json::to_value(map).ok());
 
             (royalties_percent, royalties, splits)
         }
     }
-}
-
-fn map_fractions_to_u16(mut safe_fraction_map: SafeFractionMap) -> U16Map {
-    safe_fraction_map
-        .drain()
-        .map(|(account_id, safe_fraction)| {
-            (account_id, safe_fraction.numerator as u16)
-        })
-        .collect()
 }

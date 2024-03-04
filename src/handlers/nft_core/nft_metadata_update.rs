@@ -27,7 +27,7 @@ pub(crate) async fn handle_nft_metadata_update(
 
     for log in data.0 {
         rt.minterop_rpc
-            .token(tx.receiver.clone(), log.token_ids, None)
+            .token(tx.receiver.to_string(), log.token_ids, None, Some(true))
             .await;
     }
 }

@@ -1,12 +1,19 @@
 use near_lake_framework::near_indexer_primitives::{
     types::AccountId,
-    views::{ReceiptEnumView, StateChangeValueView},
-    IndexerExecutionOutcomeWithReceipt, StreamerMessage,
+    views::{
+        ReceiptEnumView,
+        StateChangeValueView,
+    },
+    IndexerExecutionOutcomeWithReceipt,
+    StreamerMessage,
 };
 
 use crate::{
-    database::DbConnPool, handlers::TrackedAction, logging::HandleErr,
-    rpc_connection::MinteropRpcConnector, LakeStreamer,
+    database::DbConnPool,
+    handlers::TrackedAction,
+    logging::HandleErr,
+    rpc_connection::MinteropRpcConnector,
+    LakeStreamer,
 };
 
 /// Holding all the data needed to handle blocks

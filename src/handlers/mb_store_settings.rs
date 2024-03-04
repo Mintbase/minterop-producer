@@ -70,7 +70,9 @@ pub(crate) async fn handle_mb_store_change_setting(
 
     // TODO: do we really need this call?
     // call RPC for contract metadata, needs to await to avoid invalid mutation
-    rt.minterop_rpc.contract(tx.receiver.clone(), false).await;
+    rt.minterop_rpc
+        .contract(tx.receiver.to_string(), false)
+        .await;
 
     if let Some(new_minter) = data.granted_minter {
         diesel::insert_into(mb_store_minters::table)

@@ -1,9 +1,11 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use hyper::{Body, Request};
+use hyper::{
+    Body,
+    Request,
+};
 use minterop_data::rpc_payloads::*;
-use near_lake_framework::near_indexer_primitives::types::AccountId;
 
 type Client = hyper::Client<
     hyper_tls::HttpsConnector<hyper::client::HttpConnector>,
@@ -24,10 +26,13 @@ impl MinteropRpcConnector {
         Ok(Self { client, endpoint })
     }
 
-    pub async fn contract(&self, contract_id: AccountId, refresh: bool) {
+    pub async fn contract(&self, contract_id: String, refresh: bool) {
         let req = post_json(
             &self.endpoint.to_string(),
-            &RpcMessage::from_contract(contract_id.to_string(), refresh),
+            &RpcMessage::HandleContractPayload {
+                contract_id: contract_id.clone(),
+                refresh: Some(refresh),
+            },
         );
 
         crate::debug!("req: {:?}", req);
@@ -45,17 +50,19 @@ impl MinteropRpcConnector {
 
     pub async fn token(
         &self,
-        contract_id: AccountId,
+        contract_id: String,
         token_ids: Vec<String>,
         minter: Option<String>,
+        refresh: Option<bool>,
     ) {
         let req = post_json(
             &self.endpoint.to_string(),
-            &RpcMessage::from_token(
-                contract_id.to_string(),
-                token_ids.clone(),
+            &RpcMessage::HandleTokenPayload {
+                contract_id: contract_id.clone(),
+                token_ids: token_ids.clone(),
                 minter,
-            ),
+                refresh,
+            },
         );
 
         crate::debug!("req: {:?}", req);
@@ -72,23 +79,35 @@ impl MinteropRpcConnector {
         }
     }
 
+    #[allow(clippy::too_many_arguments)] // Forgive me father for I have sinned
     pub async fn create_metadata(
         &self,
         contract_id: String,
         metadata_id: u64,
         minters_allowlist: Option<Vec<String>>,
         price: u128,
+        royalties: Option<crate::util::U16Map>,
+        royalty_percent: Option<u16>,
+        max_supply: Option<u32>,
+        last_possible_mint: Option<u64>,
+        is_locked: bool,
         creator: String,
     ) {
         let req = post_json(
             &self.endpoint.to_string(),
-            &RpcMessage::from_metadata(
-                contract_id.clone(),
+            &RpcMessage::HandleMetadataPayload {
+                contract_id: contract_id.clone(),
                 metadata_id,
                 minters_allowlist,
-                price,
+                price: price.to_string(),
+                royalties,
+                royalty_percent,
+                max_supply,
+                last_possible_mint,
+                is_locked,
+                refresh: None,
                 creator,
-            ),
+            },
         );
 
         crate::debug!("req: {:?}", req);
@@ -114,12 +133,12 @@ impl MinteropRpcConnector {
     ) {
         let req = post_json(
             &self.endpoint.to_string(),
-            &RpcMessage::from_sale(
-                contract_id.clone(),
-                token_id.clone(),
-                new_owner_id.clone(),
+            &RpcMessage::HandleSalePayload {
+                contract_id: contract_id.clone(),
+                token_id: token_id.clone(),
+                new_owner_id: new_owner_id.clone(),
                 receipt_id,
-            ),
+            },
         );
 
         crate::debug!("req: {:?}", req);

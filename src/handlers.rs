@@ -1,10 +1,20 @@
 pub(crate) mod prelude {
-    pub use diesel::{ExpressionMethods, QueryDsl};
+    pub use diesel::{
+        ExpressionMethods,
+        QueryDsl,
+    };
     pub use futures::future;
-    pub use minterop_data::{db_rows::*, pg_numeric, schema::*};
+    pub use minterop_data::{
+        db_rows::*,
+        pg_numeric,
+        schema::*,
+    };
 
     pub(crate) use crate::{
-        database::ExecuteDb, error, runtime::TxProcessingRuntime, ReceiptData,
+        database::ExecuteDb,
+        error,
+        runtime::TxProcessingRuntime,
+        ReceiptData,
     };
 
     pub(crate) const CURRENCY_NEAR: &str = "near";
@@ -15,8 +25,6 @@ crate::forward_mod!(nft_core);
 crate::forward_mod!(nft_approvals);
 crate::forward_mod!(nft_payouts);
 crate::forward_mod!(mb_store_settings);
-crate::forward_mod!(contract_metadata_update);
-crate::forward_mod!(nft_metadata_update);
 crate::forward_mod!(tracked_actions);
 
 pub mod market_v01;

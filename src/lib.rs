@@ -4,6 +4,7 @@ mod handlers;
 mod logging;
 mod rpc_connection;
 mod runtime;
+mod util;
 
 pub use config::Config;
 pub use runtime::MintlakeRuntime;

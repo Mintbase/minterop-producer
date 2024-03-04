@@ -13,7 +13,9 @@ pub(crate) async fn handle_nft_burn(
     data: serde_json::Value,
 ) {
     // contract should always be inserted prior to token for metadata resolve
-    rt.minterop_rpc.contract(tx.receiver.clone(), false).await;
+    rt.minterop_rpc
+        .contract(tx.receiver.to_string(), false)
+        .await;
 
     match serde_json::from_value::<Vec<NftBurnLog>>(data.clone()) {
         Err(_) => error!(r#"Invalid log for "nft_burn": {} ({:?})"#, data, tx),
@@ -70,7 +72,7 @@ async fn insert_nft_tokens(
             owner: tx.sender.to_string(),
             burned_timestamp: Some(tx.timestamp),
             burned_receipt_id: Some(tx.id.clone()),
-            ..NftToken::empty()
+            ..Default::default()
         })
         .collect::<Vec<_>>();
 
