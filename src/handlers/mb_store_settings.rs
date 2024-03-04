@@ -1,5 +1,6 @@
 use mb_sdk::events::mb_store_settings::{
-    MbStoreChangeSettingData, MbStoreDeployData,
+    MbStoreChangeSettingData,
+    MbStoreDeployData,
 };
 
 use crate::handlers::prelude::*;

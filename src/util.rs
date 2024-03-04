@@ -1,6 +1,9 @@
-use mb_sdk::near_sdk::AccountId;
-use mb_sdk::types::nft_core::SafeFraction;
 use std::collections::HashMap;
+
+use mb_sdk::{
+    near_sdk::AccountId,
+    types::nft_core::SafeFraction,
+};
 
 pub(crate) type SafeFractionMap = HashMap<AccountId, SafeFraction>;
 pub(crate) type U16Map = HashMap<String, u16>;
@@ -18,8 +21,9 @@ pub(crate) fn map_fractions_to_u16(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::str::FromStr;
+
+    use super::*;
 
     fn get_safe_fraction_map() -> SafeFractionMap {
         let mut m = HashMap::new();

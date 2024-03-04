@@ -1,7 +1,10 @@
 use mb_sdk::events::nft_core::NftMintLog;
 
 use crate::{
-    error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData,
+    error,
+    handlers::prelude::*,
+    runtime::TxProcessingRuntime,
+    ReceiptData,
 };
 
 pub(crate) async fn handle_nft_mint(
