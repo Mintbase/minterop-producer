@@ -6,6 +6,7 @@ pub struct CreateMetadataData {
     creator: near_sdk::AccountId,
     minters_allowlist: Option<Vec<near_sdk::AccountId>>,
     price: near_sdk::json_types::U128,
+    ft_contract_id: Option<near_sdk::AccountId>,
     royalty: Option<mb_sdk::types::nft_core::Royalty>,
     max_supply: Option<u32>,
     last_possible_mint: Option<near_sdk::json_types::U64>,
@@ -34,6 +35,7 @@ pub(crate) async fn handle_create_metadata(
                 accounts.into_iter().map(|a| a.to_string()).collect()
             }),
             data.price.0,
+            data.ft_contract_id.map(|id| id.to_string()),
             data.royalty
                 .as_ref()
                 .map(|r| crate::util::map_fractions_to_u16(&r.split_between)),
