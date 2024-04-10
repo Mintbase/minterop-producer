@@ -71,6 +71,6 @@ features = ["all"]
 
 [dependencies.minterop-data]
 git = "https://github.com/Mintbase/minterop-data"
-rev = "b6efdc1e7873307b3e6b72a6207a710fbcaae960"
+rev = "fe6ae73109a0350ffde8ae6fec23562e86208ebd"
 
 [features]
