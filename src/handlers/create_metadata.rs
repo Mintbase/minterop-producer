@@ -9,7 +9,8 @@ pub struct CreateMetadataData {
     ft_contract_id: Option<near_sdk::AccountId>,
     royalty: Option<mb_sdk::types::nft_core::Royalty>,
     max_supply: Option<u32>,
-    last_possible_mint: Option<near_sdk::json_types::U64>,
+    starts_at: Option<near_sdk::json_types::U64>,
+    expires_at: Option<near_sdk::json_types::U64>,
     is_locked: bool,
 }
 
@@ -41,7 +42,8 @@ pub(crate) async fn handle_create_metadata(
                 .map(|r| crate::util::map_fractions_to_u16(&r.split_between)),
             data.royalty.map(|r| r.percentage.numerator as u16),
             data.max_supply,
-            data.last_possible_mint.map(|t| t.0),
+            data.starts_at.map(|t| t.0),
+            data.expires_at.map(|t| t.0),
             data.is_locked,
             data.creator.to_string(),
         )
