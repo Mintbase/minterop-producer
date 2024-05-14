@@ -1,10 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use hyper::{
-    Body,
-    Request,
-};
+use hyper::{Body, Request};
 use minterop_data::rpc_payloads::*;
 
 type Client = hyper::Client<
@@ -85,6 +82,7 @@ impl MinteropRpcConnector {
         contract_id: String,
         metadata_id: u64,
         minters_allowlist: Option<Vec<String>>,
+        unique_minters: bool,
         price: u128,
         ft_contract_id: Option<String>,
         royalties: Option<crate::util::U16Map>,
@@ -101,6 +99,7 @@ impl MinteropRpcConnector {
                 contract_id: contract_id.clone(),
                 metadata_id,
                 minters_allowlist,
+                unique_minters,
                 price: price.to_string(),
                 ft_contract_id,
                 royalties,
