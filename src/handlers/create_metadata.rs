@@ -5,7 +5,7 @@ pub struct CreateMetadataData {
     metadata_id: near_sdk::json_types::U64,
     creator: near_sdk::AccountId,
     minters_allowlist: Option<Vec<near_sdk::AccountId>>,
-    unique_minters: bool,
+    unique_minters: Option<bool>,
     price: near_sdk::json_types::U128,
     ft_contract_id: Option<near_sdk::AccountId>,
     royalty: Option<mb_sdk::types::nft_core::Royalty>,

@@ -1872,7 +1872,7 @@ dependencies = [
 [[package]]
 name = "minterop-data"
 version = "0.1.0"
-source = "git+https://github.com/Mintbase/minterop-data?rev=ce8506a4c14460d8a5c9d0951451d6cf9b7d8c2d#ce8506a4c14460d8a5c9d0951451d6cf9b7d8c2d"
+source = "git+https://github.com/Mintbase/minterop-data?rev=d4db00dc506a35fd46f1942b60c500504ed4baf9#d4db00dc506a35fd46f1942b60c500504ed4baf9"
 dependencies = [
  "anyhow",
  "bigdecimal",
