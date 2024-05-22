@@ -1,10 +1,7 @@
 use mb_sdk::events::nft_core::NftTransferLog;
 
 use crate::{
-    error,
-    handlers::prelude::*,
-    runtime::TxProcessingRuntime,
-    ReceiptData,
+    error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData,
 };
 
 pub(crate) async fn handle_nft_transfer(
@@ -122,7 +119,7 @@ async fn insert_nft_activities(
             kind: NFT_ACTIVITY_KIND_TRANSFER.to_string(),
             action_sender: log.old_owner_id.clone(),
             action_receiver: Some(log.new_owner_id.clone()),
-            memo: None,
+            memo: log.memo.clone(),
             price: None,
             currency: None,
         })
