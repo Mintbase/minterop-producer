@@ -1,10 +1,7 @@
 use mb_sdk::events::nft_core::NftBurnLog;
 
 use crate::{
-    error,
-    handlers::prelude::*,
-    runtime::TxProcessingRuntime,
-    ReceiptData,
+    error, handlers::prelude::*, runtime::TxProcessingRuntime, ReceiptData,
 };
 
 pub(crate) async fn handle_nft_burn(
@@ -106,7 +103,7 @@ async fn insert_nft_activities(
             kind: NFT_ACTIVITY_KIND_BURN.to_string(),
             action_sender: tx.sender.to_string(),
             action_receiver: None,
-            memo: None,
+            memo: log.memo.clone(),
             price: None,
             currency: None,
         })
